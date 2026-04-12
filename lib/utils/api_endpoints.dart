@@ -1,7 +1,7 @@
 class ApiEndpoints {
   // static const String baseUrl = "http://34.229.93.103";
   // static const String baseUrl = "https://api.shuvmarg.com";
-  static const String baseUrl = "http://192.168.1.35:7012";
+  static const String baseUrl = "http://127.0.0.1:7012"; // Replaced freelancer's hardcoded network IP with standard localhost
 
   static const String api = "/api";
   // Auth Endpoints

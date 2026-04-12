@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -257,7 +258,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             phoneNumber.startsWith('98')) {
           _phoneController.text = phoneNumber;
         } else {
-          Fluttertoast.showToast(
+          ToastService.showToast(
             msg:
                 "Please enter a valid 10-digit phone number starting with 98",
             toastLength: Toast.LENGTH_SHORT,
@@ -292,7 +293,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
     try {
       if (response != null && response.status) {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -308,7 +309,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 builder: (context) =>
                     OtpScreenNew(phone: phone, datakey: false)));
       } else {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -319,7 +320,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
       }
     } catch (e) {
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: "Faild to Signup!",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,

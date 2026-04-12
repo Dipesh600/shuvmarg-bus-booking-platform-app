@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
@@ -50,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await Provider.of<LoginProvider>(context, listen: false)
             .login(email, password);
 
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -65,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
           await NavigationService.navigateAfterLogin(context);
         }
       } else {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -77,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       print("login error: $e");
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: "Failed to login!",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,

@@ -11,6 +11,32 @@ class ApiService {
   final Dio _dio = Dio();
 
   ApiService() {
+    _dio.options.connectTimeout = const Duration(seconds: 15);
+    _dio.options.receiveTimeout = const Duration(seconds: 15);
+    
+    _dio.interceptors.add(InterceptorsWrapper(
+      onError: (DioException e, handler) {
+        String friendlyMessage = "Network error. Please check your connection.";
+        if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+          friendlyMessage = "Connection timed out. Your internet might be slow.";
+        } else if (e.type == DioExceptionType.connectionError) {
+          friendlyMessage = "No internet connection. Please reconnect.";
+        } else if (e.response != null && e.response!.statusCode! >= 500) {
+          friendlyMessage = "Server routing error. Please try again later.";
+        }
+
+        // Inject the human-readable text into the exception for the UI catch blocks
+        final parsedError = DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          type: e.type,
+          error: friendlyMessage,
+          message: friendlyMessage,
+        );
+        return handler.next(parsedError);
+      }
+    ));
+
     if (kDebugMode) {
       _dio.interceptors.add(LogInterceptor(
         request: true,

@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sumarg/views/auth/login_screen.dart';
@@ -67,7 +68,7 @@ class _SignUpNextScreenState extends State<SignUpNextScreen> {
     });
     try {
       if (response.status) {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -85,7 +86,7 @@ class _SignUpNextScreenState extends State<SignUpNextScreen> {
           );
         }
       } else {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -96,7 +97,7 @@ class _SignUpNextScreenState extends State<SignUpNextScreen> {
         );
       }
     } catch (e) {
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: "Faild to login!",
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,

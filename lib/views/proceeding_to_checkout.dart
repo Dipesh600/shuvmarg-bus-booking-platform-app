@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:esewa_flutter_sdk/esewa_config.dart';
 import 'package:esewa_flutter_sdk/esewa_flutter_sdk.dart';
@@ -206,7 +207,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         btnOkText: 'Ticket',
       ).show();
     } else {
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: response.message,
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
@@ -520,7 +521,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         btnOkText: 'Ticket',
       ).show();
     } else {
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: response.message,
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,

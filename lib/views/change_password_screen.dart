@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/controllers/auth_controller/auth_controller.dart';
@@ -41,16 +42,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         newPassword: _newController.text.trim(),
       );
       if (res.status == true) {
-        Fluttertoast.showToast(msg: res.message ?? 'Password updated successfully');
+        ToastService.showToast(msg: res.message ?? 'Password updated successfully');
         _oldController.clear();
         _newController.clear();
         _confirmController.clear();
         if (mounted) Navigator.of(context).pop();
       } else {
-        Fluttertoast.showToast(msg: res.message ?? 'Failed to update password');
+        ToastService.showToast(msg: res.message ?? 'Failed to update password');
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Something went wrong');
+      ToastService.showToast(msg: 'Something went wrong');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

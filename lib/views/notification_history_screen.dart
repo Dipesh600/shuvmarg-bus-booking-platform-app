@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
@@ -246,7 +247,7 @@ class _NotificationHistoryScreenState
                                             notification.id);
                                     if (success) {
                                       // Show success message
-                                      Fluttertoast.showToast(
+                                      ToastService.showToast(
                                         msg: 'Marked as read successfully',
                                         toastLength: Toast.LENGTH_SHORT,
                                         gravity: ToastGravity.BOTTOM,
@@ -256,7 +257,7 @@ class _NotificationHistoryScreenState
                                       // No need to refresh - provider handles state
                                     } else {
                                       // Show error message
-                                      Fluttertoast.showToast(
+                                      ToastService.showToast(
                                         msg: context
                                             .read<NotificationProvider>()
                                             .error,
@@ -268,7 +269,7 @@ class _NotificationHistoryScreenState
                                     }
                                   } catch (e) {
                                     // Show error message
-                                    Fluttertoast.showToast(
+                                    ToastService.showToast(
                                       msg: 'Error: ${e.toString()}',
                                       toastLength: Toast.LENGTH_SHORT,
                                       gravity: ToastGravity.BOTTOM,
@@ -285,7 +286,7 @@ class _NotificationHistoryScreenState
                                             notification.id);
                                     if (success) {
                                       // Show success message
-                                      Fluttertoast.showToast(
+                                      ToastService.showToast(
                                         msg: 'Notification deleted successfully',
                                         toastLength: Toast.LENGTH_SHORT,
                                         gravity: ToastGravity.BOTTOM,
@@ -294,7 +295,7 @@ class _NotificationHistoryScreenState
                                       );
                                     } else {
                                       // Show error message
-                                      Fluttertoast.showToast(
+                                      ToastService.showToast(
                                         msg: context
                                             .read<NotificationProvider>()
                                             .error,
@@ -306,7 +307,7 @@ class _NotificationHistoryScreenState
                                     }
                                   } catch (e) {
                                     // Show error message
-                                    Fluttertoast.showToast(
+                                    ToastService.showToast(
                                       msg: 'Error: ${e.toString()}',
                                       toastLength: Toast.LENGTH_SHORT,
                                       gravity: ToastGravity.BOTTOM,
@@ -363,7 +364,7 @@ class _NotificationHistoryScreenState
                                                 notification.id);
                                         if (success) {
                                           // Show success message
-                                          Fluttertoast.showToast(
+                                          ToastService.showToast(
                                             msg: 'Marked as read successfully',
                                             toastLength: Toast.LENGTH_SHORT,
                                             gravity: ToastGravity.BOTTOM,
@@ -374,7 +375,7 @@ class _NotificationHistoryScreenState
                                           setState(() {});
                                         } else {
                                           // Show error message
-                                          Fluttertoast.showToast(
+                                          ToastService.showToast(
                                             msg: context
                                                 .read<NotificationProvider>()
                                                 .error,
@@ -386,7 +387,7 @@ class _NotificationHistoryScreenState
                                         }
                                       } catch (e) {
                                         // Show error message
-                                        Fluttertoast.showToast(
+                                        ToastService.showToast(
                                           msg: 'Error: ${e.toString()}',
                                           toastLength: Toast.LENGTH_SHORT,
                                           gravity: ToastGravity.BOTTOM,
@@ -736,7 +737,7 @@ class _NotificationHistoryScreenState
                                                           () async {
                                                         try {
                                                           // Show loading state
-                                                          Fluttertoast.showToast(
+                                                          ToastService.showToast(
                                                             msg: 'Marking as read...',
                                                             toastLength: Toast.LENGTH_SHORT,
                                                             gravity: ToastGravity.BOTTOM,
@@ -753,7 +754,7 @@ class _NotificationHistoryScreenState
 
                                                           if (success) {
                                                             // Show success message
-                                                            Fluttertoast.showToast(
+                                                            ToastService.showToast(
                                                               msg: 'Marked as read successfully',
                                                               toastLength: Toast.LENGTH_SHORT,
                                                               gravity: ToastGravity.BOTTOM,
@@ -763,7 +764,7 @@ class _NotificationHistoryScreenState
                                                             // No need to refresh - provider handles state
                                                           } else {
                                                             // Show error message
-                                                            Fluttertoast.showToast(
+                                                            ToastService.showToast(
                                                               msg: context
                                                                   .read<NotificationProvider>()
                                                                   .error,
@@ -775,7 +776,7 @@ class _NotificationHistoryScreenState
                                                           }
                                                         } catch (e) {
                                                           // Show error message
-                                                          Fluttertoast.showToast(
+                                                          ToastService.showToast(
                                                             msg: 'Error: ${e.toString()}',
                                                             toastLength: Toast.LENGTH_SHORT,
                                                             gravity: ToastGravity.BOTTOM,

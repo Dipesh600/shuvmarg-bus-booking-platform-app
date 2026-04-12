@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -75,7 +76,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
       setState(() {
         _errorMessage = 'Please enter a valid 4-digit OTP';
       });
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: 'Please enter a valid 4-digit OTP',
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
@@ -93,7 +94,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
       final response = await _authController.verifyOtpForResetPass(
           widget.phone!, otp);
       if (response != null && response.status) {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -115,7 +116,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
         setState(() {
           _errorMessage = response.message;
         });
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -129,7 +130,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
       setState(() {
         _errorMessage = 'Failed to verify OTP';
       });
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: 'Failed to verify OTP!',
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
@@ -159,7 +160,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
       });
 
       if (response != null) {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -183,7 +184,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
           _startResendTimer();
         }
       } else {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: 'Failed to resend OTP',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -197,7 +198,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
       setState(() {
         _isLoading = false;
       });
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: 'Failed to resend OTP',
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
@@ -214,7 +215,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
       final response =
           await _authController.otpVerification(widget.phone!, otp);
       if (response != null && response.status) {
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response.message,
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -236,7 +237,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
         setState(() {
           _errorMessage = response?.message ?? 'Invalid OTP';
         });
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: response?.message ?? 'Invalid OTP',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -250,7 +251,7 @@ class _OtpScreenNewState extends State<OtpScreenNew> {
       setState(() {
         _errorMessage = 'Failed to verify OTP';
       });
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: 'Failed to verify OTP!',
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,

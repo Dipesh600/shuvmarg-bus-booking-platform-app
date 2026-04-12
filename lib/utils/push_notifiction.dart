@@ -51,12 +51,16 @@ class FirebasePushnotificationService {
     //   }
     // });
 
-    await FirebaseMessaging.instance
-        .setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    try {
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (e) {
+      log("Firebase setForegroundOptions skipped locally: $e");
+    }
   }
 
   initialize() async {
@@ -135,21 +139,23 @@ class FirebasePushnotificationService {
   }
 
   static void requestNotificationPermissions() async {
-    NotificationSettings setting =
-        await FirebaseMessaging.instance.requestPermission(
-      sound: true,
-      announcement: true,
-      badge: true,
-      alert: true,
-      carPlay: true,
-      provisional: true,
-      criticalAlert: true,
-    );
-    if (setting.authorizationStatus ==
-        AuthorizationStatus.authorized) {
-    } else if (setting.authorizationStatus ==
-        AuthorizationStatus.provisional) {
-    } else {}
+    try {
+      NotificationSettings setting =
+          await FirebaseMessaging.instance.requestPermission(
+        sound: true,
+        announcement: true,
+        badge: true,
+        alert: true,
+        carPlay: true,
+        provisional: true,
+        criticalAlert: true,
+      );
+      if (setting.authorizationStatus == AuthorizationStatus.authorized) {
+      } else if (setting.authorizationStatus == AuthorizationStatus.provisional) {
+      } else {}
+    } catch (e) {
+      log("Firebase requestPermission skipped locally: $e");
+    }
   }
 
   static void requestIOSPermissions() {
@@ -165,20 +171,20 @@ class FirebasePushnotificationService {
 
   // It is assumed that all messages contain a data field with the key 'type'
   static setupInteractedMessage() async {
-    // Get any messages which caused the application to open from
-    // a terminated state.
-    RemoteMessage? initialMessage =
-        await FirebaseMessaging.instance.getInitialMessage();
+    try {
+      // Get any messages which caused the application to open from a terminated state.
+      RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage();
 
-    // If the message also contains a data property with a "type" of "chat",
-    // navigate to a chat screen
-    if (initialMessage != null) {
-      _handleMessage(initialMessage);
+      // Navigate to a chat screen if applicable
+      if (initialMessage != null) {
+        _handleMessage(initialMessage);
+      }
+
+      // Also handle any interaction when the app is in the background
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+    } catch (e) {
+      log("Firebase setupInteractedMessage skipped locally: $e");
     }
-
-    // Also handle any interaction when the app is in the background via a
-    // Stream listener
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
   }
 
   static _handleMessage(RemoteMessage message) {}

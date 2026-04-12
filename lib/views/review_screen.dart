@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sumarg/providers/feedback_provider.dart';
@@ -40,15 +41,15 @@ class _ReviewScreenState extends State<ReviewScreen> {
       
       if (mounted) {
         if (response.status) {
-          Fluttertoast.showToast(msg: response.message);
+          ToastService.showToast(msg: response.message);
           Navigator.pop(context, true);
         } else {
-          Fluttertoast.showToast(msg: response.message);
+          ToastService.showToast(msg: response.message);
         }
       }
     } catch (e) {
       if (mounted) {
-          Fluttertoast.showToast(msg: e.toString());
+          ToastService.showToast(msg: e.toString());
       }
     }
   }

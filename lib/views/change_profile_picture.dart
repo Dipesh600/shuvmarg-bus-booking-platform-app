@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'dart:io';
@@ -78,7 +79,7 @@ class _ChangeProfilePictureState extends State<ChangeProfilePicture> {
                     });
                   }
                 } catch (e) {
-                  Fluttertoast.showToast(
+                  ToastService.showToast(
                     msg: 'Failed to pick image: $e',
                     toastLength: Toast.LENGTH_SHORT,
                   );
@@ -99,7 +100,7 @@ class _ChangeProfilePictureState extends State<ChangeProfilePicture> {
                     });
                   }
                 } catch (e) {
-                  Fluttertoast.showToast(
+                  ToastService.showToast(
                     msg: 'Failed to pick image: $e',
                     toastLength: Toast.LENGTH_SHORT,
                   );
@@ -136,7 +137,7 @@ class _ChangeProfilePictureState extends State<ChangeProfilePicture> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('name', nameController.text.trim());
 
-          Fluttertoast.showToast(
+          ToastService.showToast(
             msg: response.message.isNotEmpty ? response.message : 'Profile updated successfully!',
             toastLength: Toast.LENGTH_SHORT,
           );
@@ -144,14 +145,14 @@ class _ChangeProfilePictureState extends State<ChangeProfilePicture> {
             Navigator.pop(context, true);
           }
         } else {
-          Fluttertoast.showToast(
+          ToastService.showToast(
             msg: response.message.isNotEmpty ? response.message : 'Failed to update profile',
             toastLength: Toast.LENGTH_SHORT,
           );
         }
       } catch (e) {
         if (!mounted) return;
-        Fluttertoast.showToast(
+        ToastService.showToast(
           msg: 'Error updating profile: $e',
           toastLength: Toast.LENGTH_SHORT,
         );

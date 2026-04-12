@@ -1,3 +1,4 @@
+import 'package:sumarg/utils/toast_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sumarg/controllers/auth_controller/auth_controller.dart';
@@ -36,7 +37,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
       setState(() => _isLoading = false);
 
-      Fluttertoast.showToast(
+      ToastService.showToast(
         msg: response.message,
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
