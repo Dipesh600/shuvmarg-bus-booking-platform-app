@@ -18,8 +18,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-
   @override
   void initState() {
     super.initState();
@@ -33,8 +31,13 @@ class _SplashScreenState extends State<SplashScreen> {
     String role = prefs.getString('role') ?? "passenger";
     String accessToken = prefs.getString('accessToken') ?? "notoken";
 
-    // Get FCM token
-    String? token = await _messaging.getToken();
+    // Safely get FCM token to prevent startup crashes on unconfigured desktop platforms
+    String? token;
+    try {
+      token = await FirebaseMessaging.instance.getToken();
+    } catch (e) {
+      debugPrint("Firebase Messaging skipped: App running in local/test environment");
+    }
 
     if (token != null) {
       await getConfigData(token, role, accessToken, isLogin);
