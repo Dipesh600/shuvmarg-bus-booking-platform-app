@@ -21,9 +21,15 @@ Future<void> backgroundPushNotification(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(backgroundPushNotification);
-  await FirebasePushnotificationService().setUpFirebaseNotification();
+  
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(backgroundPushNotification);
+    await FirebasePushnotificationService().setUpFirebaseNotification();
+  } catch (e) {
+    print("Firebase initialization skipped (missing config file for this platform). App will proceed without push notifications locally.");
+  }
+
   final loginProvider = LoginProvider();
   await loginProvider.loadLoginStatus();
 
