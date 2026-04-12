@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96911374741",
+    "project_id": "shuvmarg-app",
+    "storage_bucket": "shuvmarg-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96911374741:android:c9c489dda43ebfecaf9e9c",
+        "android_client_info": {
+          "package_name": "com.shuvmarg.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOUBeNwyivGbXUa9Qw1M267hIP_6vcqDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
