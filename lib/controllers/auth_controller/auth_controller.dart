@@ -120,21 +120,22 @@ class AuthController {
         }),
       );
       print("register response: ${response.body}");
-      if (response.statusCode == 200) {
+      
+      try {
         final responseData = json.decode(response.body);
-        final registerResponse =
-            ForAllResponse.fromJson(responseData);
+        final registerResponse = ForAllResponse.fromJson(responseData);
         return registerResponse;
-      } else if (response.statusCode == 400) {
-        final responseData = json.decode(response.body);
-        final registerResponse =
-            ForAllResponse.fromJson(responseData);
-        return registerResponse;
-      } else {
-        return null;
+      } catch (_) {
+          return ForAllResponse(
+            status: false,
+            message: 'Server error: Provider timeout or SMS failure. Please try again.',
+          );
       }
     } catch (error) {
-      return null;
+      return ForAllResponse(
+        status: false,
+        message: 'Network error: Cannot reach the backend.',
+      );
     }
   }
 

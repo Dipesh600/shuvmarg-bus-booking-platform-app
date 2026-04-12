@@ -57,18 +57,40 @@ class _NewDashboardScreenState extends State<NewDashboardScreen>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: AppColors.background,
-        elevation: 1,
-        title: Row(
-          children: const [
-            Text(
-              "Sumarg",
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
+        elevation: 0,
+        toolbarHeight: 100, // Taller for premium header
+        title: Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.swap_calls_rounded, color: AppColors.secondary, size: 28),
+                  SizedBox(width: 8),
+                  Text(
+                    "SUMARG",
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              const Text(
+                "Explore Beyond",
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 26,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
         ),
         centerTitle: false,
         actions: [
@@ -79,9 +101,11 @@ class _NewDashboardScreenState extends State<NewDashboardScreen>
 
               return Stack(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications,
-                        color: AppColors.primary),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0, right: 8.0),
+                    child: IconButton(
+                      icon: const Icon(Icons.notifications_none_rounded, // Premium thin icon
+                          color: AppColors.primary, size: 28),
                     onPressed: () async {
                       if (!isLoggedIn) {
                         Navigator.pushAndRemoveUntil(
@@ -106,6 +130,7 @@ class _NewDashboardScreenState extends State<NewDashboardScreen>
                         }
                       }
                     },
+                  ),
                   ),
                   if (isLoggedIn && unreadCount > 0) ...[
                     Positioned(
@@ -140,8 +165,11 @@ class _NewDashboardScreenState extends State<NewDashboardScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey,
+          labelColor: AppColors.secondary, // Orange for active
+          unselectedLabelColor: Colors.grey.shade400,
+          indicatorColor: AppColors.secondary,
+          indicatorWeight: 3,
+          dividerColor: Colors.transparent,
           tabs: const [
             Tab(
               icon: Icon(Icons.directions_bus),

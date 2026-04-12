@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF005248);
-// Lighter Shades
-  static const Color primaryLightest = Color(0xFFE0F1EF); // Mint Frost
-  static const Color primaryLighter = Color(0xFFB2D6D0); // Pale Aqua
-  static const Color primaryLight = Color(0xFF66AFA6); // Seafoam Green
+  // Strict 2-Color Architecture
+  static const Color primary = Color(0xFF005248); // Dark Teal
+  static const Color secondary = Color(0xFFFC9C09); // Vibrant Orange
 
-// Darker Shades
-  static const Color primaryDark = Color(0xFF003A33); // Dark Slate
-  static const Color primaryDarker = Color(0xFF00231E); // Charcoal Teal
-  static const Color primaryDarkest = Color(0xFF00100D); // Near Black Teal
+  // Structural Neutral Shades (Derived from Primary, functionally greyscale/off-white)
+  static const Color primaryLightest = Color(0xFFF2F7F6); // Barely off-white Teal wash for cards
+  static const Color primaryLighter = Color(0xFFD9E8E5); // Muted Teal border lines
+  static const Color primaryLight = Color(0xFF80A9A4); // Disabled elements
 
-  static const Color secondary = Color(0xFFFC9C09);
-  static const Color background = Color(0xFFFAFAFA);
-  static const Color text = Color(0xFF212121);
-  static const Color accent = Color(0xFFE91E63);
+  // Darker Structural Shades
+  static const Color primaryDark = Color(0xFF003A33);
+  static const Color primaryDarker = Color(0xFF00231E);
+  static const Color primaryDarkest = Color(0xFF00100D);
+
+  // Background & Core
+  static const Color background = Color(0xFFFFFFFF); // Pure White constraint
+  static const Color text = Color(0xFF1E293B); // Slate-900 for ultra-crisp typography
+  static const Color accent = secondary; // Ban the old pink accent, force Orange
 
   static const Color white = Color(0xFFFFFFFF);
 }

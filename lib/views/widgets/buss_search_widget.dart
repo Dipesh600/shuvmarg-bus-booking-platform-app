@@ -323,15 +323,23 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
         onTap: _hideSuggestions,
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryDark.withOpacity(0.08),
+                blurRadius: 24,
+                spreadRadius: 0,
+                offset: const Offset(0, 8),
+              ),
+            ],
             border: Border.all(
+              color: AppColors.primaryLighter.withOpacity(0.3),
               width: 1,
-              color: Colors.grey.withOpacity(0.3),
             ),
-            borderRadius: BorderRadius.circular(10),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(24),
             child: SingleChildScrollView(
               child: Form(
                 key: _formKey,
@@ -346,7 +354,7 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
                                 _buildInputFieldWithSuggestions(
                                   controller: _fromController,
                                   hint: "Departing From",
-                                  icon: Icons.location_on_outlined,
+                                  icon: Icons.trip_origin,
                                   showSuggestions:
                                       _showFromSuggestions,
                                   suggestions:
@@ -354,23 +362,23 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
                                   isFromField: true,
                                   iconColor: AppColors.primary,
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 16),
                                 _buildInputFieldWithSuggestions(
                                   controller: _toController,
                                   hint: "Going to",
-                                  icon: Icons.place_outlined,
+                                  icon: Icons.location_on_rounded,
                                   showSuggestions: _showToSuggestions,
                                   suggestions: _filteredToSuggestions,
                                   isFromField: false,
-                                  iconColor: Colors.red,
+                                  iconColor: AppColors.secondary,
                                 ),
                               ],
                             ),
 
                             // Floating Swap Button
                             Positioned(
-                              right: 12,
-                              top: 30,
+                              right: 24,
+                              top: 48,
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -378,24 +386,25 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
                                   borderRadius:
                                       BorderRadius.circular(25),
                                   child: Container(
-                                    width: 50,
-                                    height: 50,
+                                    width: 44,
+                                    height: 44,
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary,
+                                      color: AppColors.white,
                                       borderRadius:
-                                          BorderRadius.circular(25),
+                                          BorderRadius.circular(22),
                                       boxShadow: [
                                         BoxShadow(
                                           color: AppColors.primary
-                                              .withOpacity(0.3),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
+                                              .withOpacity(0.15),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
                                         ),
                                       ],
+                                      border: Border.all(color: AppColors.primaryLightest, width: 2),
                                     ),
                                     child: const Icon(
-                                      Icons.swap_vert,
-                                      color: Colors.white,
+                                      Icons.swap_vert_rounded,
+                                      color: AppColors.secondary,
                                       size: 24,
                                     ),
                                   ),
@@ -404,7 +413,7 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 16),
                         InkWell(
                           onTap: _pickDate,
                           child: _buildDatePickerField(),
@@ -457,24 +466,26 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
                             );
                           }).toList(),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
-                          height: 48,
+                          height: 56,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: AppColors.secondary,
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
                               shape: RoundedRectangleBorder(
                                 borderRadius:
-                                    BorderRadius.circular(8),
+                                    BorderRadius.circular(16),
                               ),
                             ),
                             onPressed: _findBuses,
                             child: const Text(
-                              "Find Bus",
+                              "Search Buses",
                               style: TextStyle(
                                 fontSize: 16,
-                                letterSpacing: 1.2,
+                                fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
@@ -502,17 +513,18 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade300),
+            color: AppColors.primaryLightest,
+            borderRadius: BorderRadius.circular(16),
           ),
           child: TextFormField(
             controller: controller,
+            style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.text, fontSize: 16),
             decoration: InputDecoration(
               hintText: hint,
-              icon: Icon(icon, color: iconColor),
+              hintStyle: const TextStyle(fontWeight: FontWeight.normal, color: Colors.black54),
+              icon: Icon(icon, color: iconColor, size: 24),
               border: InputBorder.none,
             ),
             onTap: () {
@@ -603,29 +615,34 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
   Widget _buildDatePickerField() {
     return Container(
       padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        color: AppColors.primaryLightest,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          Icon(Icons.calendar_today, color: Colors.grey.shade600),
-          const SizedBox(width: 10),
+          const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 24),
+          const SizedBox(width: 16),
           Text(
             _selectedDate != null
-                ? _selectedDate!.toLocal().toString().split(' ')[0]
-                : "Select Date",
+                ? "${_selectedDate!.day} ${_getMonthName(_selectedDate!.month)} ${_selectedDate!.year}"
+                : "Select Travel Date",
             style: TextStyle(
               fontSize: 16,
+              fontWeight: _selectedDate != null ? FontWeight.w600 : FontWeight.normal,
               color: _selectedDate != null
-                  ? Colors.black
-                  : Colors.grey.shade600,
+                  ? AppColors.text
+                  : Colors.black54,
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _getMonthName(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
   }
 }
