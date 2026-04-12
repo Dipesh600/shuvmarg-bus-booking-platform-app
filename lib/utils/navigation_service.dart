@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import '../views/seats_screen.dart';
-import '../views/buss_search_result_screen.dart';
-import '../views/home_screen.dart';
-import '../views/user_profile_screen.dart';
+import '../views/booking/seats_screen.dart';
+import '../views/search/buss_search_result_screen.dart';
+import '../views/home/home_screen.dart';
+import '../views/profile/user_profile_screen.dart';
 import '../models/trip_response.dart';
 
 /// Service to handle smart navigation after login

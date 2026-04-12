@@ -6,7 +6,7 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sumarg/apis/api_services.dart';
 import 'package:sumarg/utils/api_endpoints.dart';
-import '../utils/color_constants.dart';
+import '../../utils/color_constants.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
 

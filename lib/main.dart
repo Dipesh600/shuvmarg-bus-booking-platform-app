@@ -13,7 +13,7 @@ import 'package:sumarg/providers/feedback_provider.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/utils/push_notifiction.dart';
 import 'package:sumarg/utils/global_context.dart';
-import 'package:sumarg/views/splash_screen.dart';
+import 'package:sumarg/views/home/splash_screen.dart';
 
 Future<void> backgroundPushNotification(RemoteMessage message) async {
   try {} catch (e) {}

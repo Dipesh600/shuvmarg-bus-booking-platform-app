@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:sumarg/controllers/seatas_controller/seats_provider.dart';
 import 'package:sumarg/models/trip_response.dart';
 import 'package:sumarg/utils/color_constants.dart';
-import 'package:sumarg/views/proceeding_to_checkout.dart';
-import 'package:sumarg/views/seats_policy_info.dart';
-import 'package:sumarg/views/bus_details_screen.dart';
+import 'package:sumarg/views/booking/proceeding_to_checkout.dart';
+import 'package:sumarg/views/booking/seats_policy_info.dart';
+import 'package:sumarg/views/booking/bus_details_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
   final TripData busData;

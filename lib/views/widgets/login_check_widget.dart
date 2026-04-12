@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../controllers/auth_controller/login_provider.dart';
-import '../utils/navigation_service.dart';
-import '../views/auth/login_screen.dart';
+import 'package:sumarg/controllers/auth_controller/login_provider.dart';
+import 'package:sumarg/utils/navigation_service.dart';
+import 'package:sumarg/views/auth/login_screen.dart';
 
 /// Widget to handle login checks and redirects
 class LoginCheckWidget extends StatelessWidget {

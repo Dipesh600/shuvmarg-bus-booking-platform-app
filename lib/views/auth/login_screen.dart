@@ -7,8 +7,8 @@ import 'package:sumarg/controllers/auth_controller/login_provider.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/utils/navigation_service.dart';
 import 'package:sumarg/views/auth/signup_screen.dart';
-import 'package:sumarg/views/home_screen.dart';
-import '../forgot_password.dart';
+import 'package:sumarg/views/home/home_screen.dart';
+import 'forgot_password.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

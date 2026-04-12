@@ -17,7 +17,7 @@ import 'package:sumarg/models/yatra_points_response.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/utils/esewa_config.dart';
 import 'package:sumarg/views/auth/login_screen.dart';
-import 'package:sumarg/views/ticket_screen.dart';
+import 'package:sumarg/views/tickets/ticket_screen.dart';
 import 'package:sumarg/views/widgets/button_widget.dart';
 
 class ProceedingToCheckout extends StatefulWidget {

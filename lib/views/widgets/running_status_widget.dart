@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sumarg/utils/color_constants.dart';
-import 'package:sumarg/views/running_status.dart';
+import 'package:sumarg/views/buses/running_status.dart';
 
 class RunningStatusWidget extends StatelessWidget {
   const RunningStatusWidget({super.key});

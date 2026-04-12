@@ -4,7 +4,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sumarg/controllers/auth_controller/auth_controller.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/views/auth/login_screen.dart';
-import 'package:sumarg/views/home_screen.dart';
+import 'package:sumarg/views/home/home_screen.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   final String? email;

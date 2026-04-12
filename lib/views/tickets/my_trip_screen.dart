@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import '../utils/color_constants.dart';
-import '../providers/ticket_provider.dart';
-import '../utils/provider_helper.dart';
-import 'widgets/ticket_history_widget.dart';
+import '../../utils/color_constants.dart';
+import '../../providers/ticket_provider.dart';
+import '../../utils/provider_helper.dart';
+import 'package:sumarg/views/widgets/ticket_history_widget.dart';
 
 class MyTripScreen extends StatefulWidget {
   const MyTripScreen({super.key});

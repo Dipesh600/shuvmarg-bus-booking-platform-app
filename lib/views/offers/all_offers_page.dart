@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sumarg/providers/coupon_provider.dart';
 import 'package:sumarg/utils/color_constants.dart';
-import 'package:sumarg/widgets/coupon_offer_card.dart';
+import 'package:sumarg/views/widgets/coupon_offer_card.dart';
 
 class AllOffersPage extends StatefulWidget {
   const AllOffersPage({super.key});

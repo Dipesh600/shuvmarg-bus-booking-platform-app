@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:sumarg/utils/color_constants.dart';
-import 'package:sumarg/views/buss_search_result_screen.dart';
+import 'package:sumarg/views/search/buss_search_result_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum Shift { both, day, night }

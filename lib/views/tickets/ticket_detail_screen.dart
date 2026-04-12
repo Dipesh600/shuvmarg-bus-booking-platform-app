@@ -3,14 +3,14 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sumarg/views/widgets/ticket_card_widget.dart';
 import 'package:sumarg/views/widgets/qr_code_widget.dart';
-import '../utils/color_constants.dart';
+import '../../utils/color_constants.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:sumarg/providers/ticket_provider.dart';
-import '../models/trip_data.dart';
+import '../../models/trip_data.dart';
 
 class TicketDetailScreen extends StatefulWidget {
   final TripData tripData;

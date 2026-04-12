@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/color_constants.dart';
-import '../seats_screen.dart';
+import 'package:sumarg/views/booking/seats_screen.dart';
 
 class AvailableBussesWidget extends StatelessWidget {
   const AvailableBussesWidget({super.key});

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import '../utils/color_constants.dart';
-import 'package:sumarg/widgets/coupon_offer_card.dart';
-import 'package:sumarg/views/all_offers_page.dart';
+import '../../utils/color_constants.dart';
+import 'package:sumarg/views/widgets/coupon_offer_card.dart';
+import 'package:sumarg/views/offers/all_offers_page.dart';
 import 'package:provider/provider.dart';
-import '../providers/coupon_provider.dart';
+import '../../providers/coupon_provider.dart';
 
 class OffersForYou extends StatefulWidget {
   const OffersForYou({super.key});

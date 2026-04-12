@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/views/auth/login_screen.dart';
-import 'package:sumarg/views/buss_ticket_search_screen.dart';
-import 'package:sumarg/views/hiace_screen.dart';
-import 'package:sumarg/views/jeep_screen.dart';
-import 'package:sumarg/views/minit_bus_screen.dart';
-import 'package:sumarg/views/notification_history_screen.dart';
+import 'package:sumarg/views/search/buss_ticket_search_screen.dart';
+import 'package:sumarg/views/buses/hiace_screen.dart';
+import 'package:sumarg/views/buses/jeep_screen.dart';
+import 'package:sumarg/views/buses/minit_bus_screen.dart';
+import 'package:sumarg/views/notifications/notification_history_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:sumarg/providers/notification_provider.dart';
 import 'package:sumarg/providers/profile_provider.dart';

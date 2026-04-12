@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sumarg/utils/color_constants.dart';
-import 'package:sumarg/views/widgets/bus_list_common.dart';
-import 'package:sumarg/models/trip_response.dart';
-import 'package:sumarg/providers/ticket_provider.dart';
 import 'package:sumarg/controllers/auth_controller/login_provider.dart';
-import 'package:sumarg/views/seats_screen.dart';
-import 'package:sumarg/views/auth/login_screen.dart';
+import 'package:sumarg/controllers/ticket_controller/ticket_controller.dart';
+import 'package:sumarg/models/trip_response.dart';
+import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/utils/navigation_service.dart';
+import 'package:sumarg/views/auth/login_screen.dart';
+import 'package:sumarg/views/booking/seats_screen.dart';
+import 'package:sumarg/views/widgets/bus_list_common.dart';
 
-class AvailableBussesScreen extends StatefulWidget {
-  const AvailableBussesScreen({super.key});
+class BusResultsScreen extends StatefulWidget {
+  final Map<String, dynamic> searchData;
+
+  const BusResultsScreen({super.key, required this.searchData});
 
   @override
-  State<AvailableBussesScreen> createState() => _AvailableBussesScreenState();
+  State<BusResultsScreen> createState() => _BusResultsScreenState();
 }
 
-class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
+class _BusResultsScreenState extends State<BusResultsScreen> {
   late Future<TripResponse> _searchFuture;
-  bool _isLoading = false;
-
-  // Filter variables
   String _selectedFilter = 'None';
   List<TripData>? _sortedBusResults;
   RangeValues _priceRange = const RangeValues(500, 2000);
@@ -30,32 +29,48 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
   // Date selection variables
   DateTime _selectedDate = DateTime.now();
   List<DateTime> _availableDates = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _generateAvailableDates();
-    _performSearch();
+    _initializeSearch();
     _minPriceController.text = '500';
     _maxPriceController.text = '2000';
   }
 
   void _generateAvailableDates() {
     final today = DateTime.now();
-
-    // Generate dates from today onwards (7 days)
+    // Generate dates from today onwards (maximum 10 days)
     _availableDates = [];
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 10; i++) {
       final date = today.add(Duration(days: i));
       _availableDates.add(date);
     }
   }
 
-  @override
-  void dispose() {
-    _minPriceController.dispose();
-    _maxPriceController.dispose();
-    super.dispose();
+  void _initializeSearch() {
+    // Parse date from searchData if available
+    if (widget.searchData['date'] != null &&
+        widget.searchData['date'].isNotEmpty) {
+      try {
+        final dateString = widget.searchData['date'];
+        final dateParts = dateString.split('-');
+        if (dateParts.length == 3) {
+          _selectedDate = DateTime(
+            int.parse(dateParts[0]), // year
+            int.parse(dateParts[1]), // month
+            int.parse(dateParts[2]), // day
+          );
+        }
+      } catch (e) {
+        print('Error parsing date from searchData: $e');
+        _selectedDate = DateTime.now();
+      }
+    }
+
+    _performSearch();
   }
 
   void _performSearch() {
@@ -63,27 +78,21 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
       _isLoading = true;
     });
 
-    final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
+    final TicketController ticketController = TicketController();
 
-    // Use selected date
+    // Create updated search data with selected date
     final formattedDate =
         "${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}";
 
-    // Search data with selected date
-    final searchData = {
-      "date": formattedDate,
-      "shift": ["day", "night"]
-    };
-    debugPrint('Search POST data: $searchData');
+    final updatedSearchData = Map<String, dynamic>.from(widget.searchData);
+    updatedSearchData['date'] = formattedDate;
 
-    _searchFuture = ticketProvider.searchTicket(searchData);
+    _searchFuture = ticketController.searchTicket(updatedSearchData);
     _searchFuture.then((_) {
-      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
     }).catchError((error) {
-      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -121,17 +130,17 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
 
   Future<void> _showDatePicker() async {
     final today = DateTime.now();
-    final todayStart =
-        DateTime(today.year, today.month, today.day); // Start of today
-    final lastDate = todayStart.add(const Duration(days: 6));
-    final initialPickerDate =
-        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-
+    final todayStart = DateTime(today.year, today.month, today.day);
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: initialPickerDate,
-      firstDate: todayStart, // Disable all dates before today
-      lastDate: lastDate, // Allow only up to 7 days including today
+      initialDate: _selectedDate,
+      firstDate: todayStart,
+      lastDate: DateTime(today.year + 1, today.month, today.day),
+      selectableDayPredicate: (DateTime date) {
+        final dateStart = DateTime(date.year, date.month, date.day);
+        return dateStart.isAtSameMomentAs(todayStart) ||
+            dateStart.isAfter(todayStart);
+      },
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -139,7 +148,7 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
               primary: AppColors.primary,
               onPrimary: Colors.white,
               onSurface: Colors.black,
-              onSurfaceVariant: Colors.grey[400], // Disabled dates color
+              onSurfaceVariant: Colors.grey[400],
             ),
           ),
           child: child!,
@@ -149,19 +158,17 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
 
     if (picked != null && picked != _selectedDate) {
       _onDateSelected(picked);
-      // Scroll to selected date in horizontal list if it's within the 10-day range
-      final today = DateTime.now();
-      final daysDifference = picked.difference(today).inDays;
-      if (daysDifference >= 0 && daysDifference < 10) {
-        // The date is within our 10-day range, so it will be visible in the horizontal list
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          // Optional: Add scroll animation to the selected date
-        });
-      }
     }
   }
 
-  void _handleBusTap(TripData bus) async {
+  @override
+  void dispose() {
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
+    super.dispose();
+  }
+
+  void _handleBuyTicket(BuildContext context, TripData bus) async {
     final loginProvider = Provider.of<LoginProvider>(context, listen: false);
 
     if (loginProvider.isLoggedIn) {
@@ -178,11 +185,7 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
         redirectType: NavigationService.redirectTypeSeatBooking,
         data: {
           'busId': bus.id,
-          'searchData': {
-            "date":
-                "${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}",
-            "shift": ["day", "night"]
-          },
+          'searchData': widget.searchData,
           'screen': 'seat_booking',
           'busName': bus.busDetail.busName,
           'busNo': bus.busDetail.busNumber,
@@ -196,14 +199,13 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
       );
 
       // Navigate to login screen
-      if (context.mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const LoginScreen(),
-          ),
-        );
-      }
+      // ignore: use_build_context_synchronously
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+      );
     }
   }
 
@@ -422,17 +424,12 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Available Buses",
-          style: TextStyle(color: AppColors.white),
-        ),
         backgroundColor: AppColors.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _performSearch,
-          ),
-        ],
+        title: const Text(
+          'Bus Search Results',
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -459,12 +456,10 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.1),
+                                  color: AppColors.primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.3),
+                                    color: AppColors.primary.withOpacity(0.3),
                                   ),
                                 ),
                                 child: const Row(
@@ -520,13 +515,13 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
                           onTap: () => _onDateSelected(date),
                           child: Container(
                             width: 55,
-                            height: 50,
+                            height: 64,
                             margin: const EdgeInsets.symmetric(horizontal: 3),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? AppColors.primary
                                   : isToday
-                                      ? AppColors.primary.withValues(alpha: 0.1)
+                                      ? AppColors.primary.withOpacity(0.1)
                                       : Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
@@ -539,40 +534,49 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withValues(alpha: 0.1),
+                                  color: Colors.grey.withOpacity(0.1),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '${date.day}',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : isToday
-                                            ? AppColors.primary
-                                            : Colors.black87,
-                                  ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${date.day}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.0,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : isToday
+                                                ? AppColors.primary
+                                                : Colors.black87,
+                                      ),
+                                    ),
+                                    Text(
+                                      _getDayName(date.weekday),
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        height: 1.0,
+                                        color: isSelected
+                                            ? Colors.white70
+                                            : isToday
+                                                ? AppColors.primary
+                                                : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  _getDayName(date.weekday),
-                                  style: TextStyle(
-                                    fontSize: 8,
-                                    color: isSelected
-                                        ? Colors.white70
-                                        : isToday
-                                            ? AppColors.primary
-                                            : Colors.grey[600],
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         );
@@ -616,13 +620,39 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            // Bus list
+            // Route info
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${widget.searchData['from'] ?? ''}  >  ${widget.searchData['to'] ?? ''}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}${widget.searchData['shift'] != null ? ', ${(widget.searchData['shift'] as List).join(', ')}' : ''}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             Expanded(
               child: FutureBuilder<TripResponse>(
                 future: _searchFuture,
                 builder: (context, snapshot) {
-                  if (_isLoading) {
-                    return const Center(
+                  if (_isLoading ||
+                      snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -630,8 +660,8 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(
                                 AppColors.primary),
                           ),
-                          SizedBox(height: 16),
-                          Text(
+                          const SizedBox(height: 16),
+                          const Text(
                             "Searching for buses...",
                             style: TextStyle(
                               fontSize: 16,
@@ -641,9 +671,7 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
                         ],
                       ),
                     );
-                  }
-
-                  if (snapshot.hasError) {
+                  } else if (snapshot.hasError) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -673,74 +701,50 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
                         ],
                       ),
                     );
-                  }
-
-                  if (snapshot.hasData) {
-                    final response = snapshot.data!;
-                    if (response.success && response.data.isNotEmpty) {
-                      final filteredBuses = _applyFilter(response.data);
-                      return BusListCommon(
-                        busList: filteredBuses,
-                        onBusTap: _handleBusTap,
-                      );
-                    } else {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              response.message.isNotEmpty
-                                  ? response.message
-                                  : "No buses available for ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _performSearch,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                              ),
-                              child: const Text(
-                                "Search Again",
-                                style: TextStyle(color: AppColors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                  }
-
-                  // Default state when no data
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          "No buses found",
-                          style: TextStyle(
-                            fontSize: 16,
+                  } else if (!snapshot.hasData || snapshot.data!.data.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.search_off,
+                            size: 64,
                             color: Colors.grey,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(height: 16),
+                          Text(
+                            snapshot.data?.message.isNotEmpty == true
+                                ? snapshot.data!.message
+                                : "No buses available for ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _performSearch,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                            ),
+                            child: const Text(
+                              "Search Again",
+                              style: TextStyle(color: AppColors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final busResults = _applyFilter(snapshot.data!.data);
+
+                  return BusListCommon(
+                    busList: busResults,
+                    onBusTap: (bus) {
+                      _handleBuyTicket(context, bus);
+                    },
                   );
                 },
               ),

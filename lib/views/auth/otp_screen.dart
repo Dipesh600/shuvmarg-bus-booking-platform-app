@@ -6,7 +6,7 @@ import 'package:pinput/pinput.dart';
 import 'package:sumarg/controllers/auth_controller/auth_controller.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/views/auth/signup_next_screen.dart';
-import 'package:sumarg/views/new_password_screen.dart';
+import 'package:sumarg/views/auth/new_password_screen.dart';
 
 class OtpScreenNew extends StatefulWidget {
   final String? phone;

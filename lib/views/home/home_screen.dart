@@ -6,10 +6,10 @@ import 'package:sumarg/controllers/auth_controller/login_provider.dart';
 import 'package:sumarg/providers/ticket_provider.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/views/auth/login_screen.dart';
-import 'package:sumarg/views/my_trip_screen.dart';
-import 'package:sumarg/views/new_dashboard_screen.dart';
-import 'package:sumarg/views/user_profile_screen.dart';
-import 'available_busses_screen.dart';
+import 'package:sumarg/views/tickets/my_trip_screen.dart';
+import 'package:sumarg/views/home/new_dashboard_screen.dart';
+import 'package:sumarg/views/profile/user_profile_screen.dart';
+import 'package:sumarg/views/buses/available_busses_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sumarg/views/live_bus_search_list_screen.dart';
+import 'package:sumarg/views/search/live_bus_search_list_screen.dart';
 
 class ByBusNumberTab extends StatefulWidget {
   const ByBusNumberTab({super.key});

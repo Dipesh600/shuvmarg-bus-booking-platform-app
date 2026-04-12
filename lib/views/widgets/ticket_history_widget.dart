@@ -9,8 +9,8 @@ import 'dart:io';
 import '../../utils/color_constants.dart';
 import '../../models/ticket_history_response.dart';
 import '../../models/trip_data.dart';
-import '../../views/review_screen.dart';
-import '../ticket_detail_screen.dart';
+import '../../views/review/review_screen.dart';
+import '../tickets/ticket_detail_screen.dart';
 
 class TicketHistoryWidget extends StatefulWidget {
   final List<TicketHistoryData> ticketHistoryData;

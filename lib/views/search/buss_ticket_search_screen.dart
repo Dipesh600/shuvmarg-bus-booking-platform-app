@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sumarg/views/offers_for_you.dart';
+import 'package:sumarg/views/offers/offers_for_you.dart';
 import 'package:sumarg/views/widgets/buss_search_widget.dart';
 import 'package:sumarg/views/widgets/running_status_widget.dart';
 
