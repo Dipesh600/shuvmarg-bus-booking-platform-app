@@ -320,185 +320,224 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: _hideSuggestions,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDark.withOpacity(0.08),
-                blurRadius: 24,
-                spreadRadius: 0,
-                offset: const Offset(0, 8),
-              ),
-            ],
-            border: Border.all(
-              color: AppColors.primaryLighter.withOpacity(0.3),
-              width: 1,
+      onTap: _hideSuggestions,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primaryDark,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    Column(
-                      children: [
-                        Stack(
-                          children: [
-                            Column(
-                              children: [
-                                _buildInputFieldWithSuggestions(
-                                  controller: _fromController,
-                                  hint: "Departing From",
-                                  icon: Icons.trip_origin,
-                                  showSuggestions:
-                                      _showFromSuggestions,
-                                  suggestions:
-                                      _filteredFromSuggestions,
-                                  isFromField: true,
-                                  iconColor: AppColors.primary,
-                                ),
-                                const SizedBox(height: 16),
-                                _buildInputFieldWithSuggestions(
-                                  controller: _toController,
-                                  hint: "Going to",
-                                  icon: Icons.location_on_rounded,
-                                  showSuggestions: _showToSuggestions,
-                                  suggestions: _filteredToSuggestions,
-                                  isFromField: false,
-                                  iconColor: AppColors.secondary,
-                                ),
-                              ],
-                            ),
+          ],
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // SEGMENTED CONTROL: One Way / Round Trip
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "One Way",
+                        style: TextStyle(
+                           color: AppColors.primaryDarkest,
+                           fontWeight: FontWeight.bold,
+                           fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryDarker,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        "Round Trip",
+                        style: TextStyle(
+                           color: Colors.white.withValues(alpha: 0.5),
+                           fontWeight: FontWeight.w600,
+                           fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-                            // Floating Swap Button
-                            Positioned(
-                              right: 24,
-                              top: 48,
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: _swapLocations,
-                                  borderRadius:
-                                      BorderRadius.circular(25),
-                                  child: Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.white,
-                                      borderRadius:
-                                          BorderRadius.circular(22),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary
-                                              .withOpacity(0.15),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                      border: Border.all(color: AppColors.primaryLightest, width: 2),
-                                    ),
-                                    child: const Icon(
-                                      Icons.swap_vert_rounded,
-                                      color: AppColors.secondary,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ),
-                              ),
+              // STACKED INPUTS WITH SWAP
+              Stack(
+                alignment: Alignment.centerRight,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildInputFieldWithSuggestions(
+                          controller: _fromController,
+                          hint: "From",
+                          icon: Icons.directions_bus,
+                          showSuggestions: _showFromSuggestions,
+                          suggestions: _filteredFromSuggestions,
+                          isFromField: true,
+                          iconColor: Colors.white70,
+                        ),
+                        Divider(height: 1, color: Colors.white.withValues(alpha: 0.2)),
+                        _buildInputFieldWithSuggestions(
+                          controller: _toController,
+                          hint: "To",
+                          icon: Icons.directions_bus,
+                          showSuggestions: _showToSuggestions,
+                          suggestions: _filteredToSuggestions,
+                          isFromField: false,
+                          iconColor: Colors.white70,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // FLOATING SWAP BUTTON
+                  Positioned(
+                    right: 20,
+                    child: GestureDetector(
+                      onTap: _swapLocations,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 8,
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          onTap: _pickDate,
-                          child: _buildDatePickerField(),
+                        child: const Icon(
+                          Icons.swap_vert,
+                          color: AppColors.primary,
+                          size: 20,
                         ),
-                        const SizedBox(height: 14),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Shift",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // DATE & PASSENGERS INLINE
+              Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: InkWell(
+                      onTap: _pickDate,
+                      child: _buildDatePickerField(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // DUMMY PASSENGERS FIELD (Matches UI Image visually)
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.people_alt, color: Colors.white70, size: 20),
+                          const SizedBox(width: 10),
+                          const Text(
+                            "Passengers",
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
                           ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // SHIFT / DEPARTURE TIME RADIO (We keep this since it's core Shuvmarg functionality)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: Shift.values.map((shift) {
+                  final isSelected = _selectedShift == shift;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedShift = shift),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                          color: isSelected ? AppColors.secondary : Colors.white54,
+                          size: 20,
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceEvenly,
-                          children: Shift.values.map((shift) {
-                            final isSelected =
-                                _selectedShift == shift;
-                            return GestureDetector(
-                              onTap: () => setState(
-                                  () => _selectedShift = shift),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isSelected
-                                        ? Icons.radio_button_checked
-                                        : Icons
-                                            .radio_button_unchecked,
-                                    color: isSelected
-                                        ? AppColors.primary
-                                        : Colors.black54,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    shift.name[0].toUpperCase() +
-                                        shift.name.substring(1),
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
-                              elevation: 0,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(16),
-                              ),
-                            ),
-                            onPressed: _findBuses,
-                            child: const Text(
-                              "Search Buses",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                        const SizedBox(width: 6),
+                        Text(
+                          shift.name[0].toUpperCase() + shift.name.substring(1),
+                          style: TextStyle(
+                            color: isSelected ? AppColors.secondary : Colors.white70,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
-                  ],
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24),
+
+              // MASSIVE BOOK NOW BUTTON
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _findBuses,
+                  child: const Text(
+                    "Book Now",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900, // Thick font matches image
+                      color: AppColors.primaryDarkest,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   Widget _buildInputFieldWithSuggestions({
@@ -515,16 +554,16 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primaryLightest,
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.transparent, // Removed the white clash
+            borderRadius: BorderRadius.circular(12),
           ),
           child: TextFormField(
             controller: controller,
-            style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.text, fontSize: 16),
+            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 15),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(fontWeight: FontWeight.normal, color: Colors.black54),
-              icon: Icon(icon, color: iconColor, size: 24),
+              hintStyle: const TextStyle(fontWeight: FontWeight.normal, color: Colors.white54),
+              icon: Icon(icon, color: iconColor, size: 22),
               border: InputBorder.none,
             ),
             onTap: () {
@@ -550,12 +589,12 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
           Container(
             margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.primaryDarker,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -579,16 +618,16 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
                           : Icons.location_on,
                       size: 20,
                       color: isRecentSearch
-                          ? AppColors.primary
-                          : Colors.grey[600],
+                          ? AppColors.secondary
+                          : Colors.white54,
                     ),
                     title: Text(
                       suggestion,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.black87,
+                        color: Colors.white,
                         fontWeight: isRecentSearch
-                            ? FontWeight.w500
+                            ? FontWeight.w600
                             : FontWeight.normal,
                       ),
                     ),
@@ -597,7 +636,7 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
                             'Recent search',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: Colors.white54,
                             ),
                           )
                         : null,
@@ -615,25 +654,26 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
   Widget _buildDatePickerField() {
     return Container(
       padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.primaryLightest,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.transparent, // Removed clash
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 24),
-          const SizedBox(width: 16),
+          const Icon(Icons.calendar_month_rounded, color: Colors.white70, size: 20),
+          const SizedBox(width: 10),
           Text(
             _selectedDate != null
                 ? "${_selectedDate!.day} ${_getMonthName(_selectedDate!.month)} ${_selectedDate!.year}"
-                : "Select Travel Date",
+                : "Travel Date",
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 13, // Matched other dynamic fields
               fontWeight: _selectedDate != null ? FontWeight.w600 : FontWeight.normal,
               color: _selectedDate != null
-                  ? AppColors.text
-                  : Colors.black54,
+                  ? Colors.white
+                  : Colors.white70,
             ),
           ),
         ],

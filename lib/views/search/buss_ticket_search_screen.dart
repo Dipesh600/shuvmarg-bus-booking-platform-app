@@ -15,23 +15,19 @@ class _BusTicketSearchScreenState
     extends State<BusTicketSearchScreen> {
   @override
   Widget build(BuildContext context) {
-    return  Padding(
-      padding: const EdgeInsets.all(12),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            BussSearchWidget(),
-            SizedBox(height: 26),
-            RunningStatusWidget(),
-            SizedBox(height: 26),
-            OffersForYou(),
-            SizedBox(height: 26),
-            // MoreOptions(),
-            // OffersForYou(),
-            // Running Status Section
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const BussSearchWidget(),
+          const SizedBox(height: 26),
+          // We will update RunningStatus and Offers separately
+          // const RunningStatusWidget(),
+          // const SizedBox(height: 26),
+          const OffersForYou(),
+          const SizedBox(height: 26),
+        ],
       ),
     );
   }
