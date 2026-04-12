@@ -33,105 +33,132 @@ class _OffersForYouState extends State<OffersForYou> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Offers For You",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Colors.black87,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: const Text(
+                      "Exclusive Offers",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
-                ),
-                Text(
-                  loading
-                      ? "Loading..."
-                      : error.isNotEmpty
-                          ? "0 offers available"
-                          : "${coupons.length} offers available",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AllOffersPage(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "SEE ALL",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.white70,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Offers section (loading/error/first 5 coupons)
             if (loading)
-              const Center(child: CircularProgressIndicator()),
+              const Center(child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(color: AppColors.secondary),
+              )),
             if (!loading && error.isNotEmpty)
               Center(
-                child: Text(
-                  error,
-                  style: const TextStyle(color: Colors.red),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    error,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
                 ),
               ),
+            if (!loading && error.isEmpty && coupons.isEmpty)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDarker.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.local_activity_outlined,
+                        color: AppColors.secondary,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "No deals right now",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "Check back later for exclusive Shuvmarg discounts.",
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+
             if (!loading && error.isEmpty && coupons.isNotEmpty)
               CarouselSlider(
                 options: CarouselOptions(
-                  height: 320,
+                  height: 220,
                   enlargeCenterPage: true,
                   autoPlay: true,
-                  aspectRatio: 16 / 9,
                   autoPlayInterval: const Duration(seconds: 4),
                   viewportFraction: 0.85,
                   autoPlayCurve: Curves.fastOutSlowIn,
-                  autoPlayAnimationDuration:
-                      const Duration(milliseconds: 800),
+                  autoPlayAnimationDuration: const Duration(milliseconds: 800),
                 ),
                 items: coupons.take(5).map((coupon) {
-                  final colorPalette = <Color>[
-                    AppColors.primary,
-                    AppColors.secondary,
-                    Colors.green,
-                    Colors.purple,
-                    Colors.orange,
-                  ];
-                  final idx = coupons.indexOf(coupon) % colorPalette.length;
-                  final bg = colorPalette[idx];
                   return CouponOfferCard(
                     coupon: coupon,
-                    backgroundColor: bg,
                   );
                 }).toList(),
               ),
 
-            const SizedBox(height: 10),
-
-            // View All Offers Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const AllOffersPage(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.local_offer),
-                label: const Text(
-                  "View All Offers",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 50),
+            const SizedBox(height: 30),
           ],
         );
       },

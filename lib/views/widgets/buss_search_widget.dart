@@ -18,7 +18,7 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
   final _formKey = GlobalKey<FormState>();
   final _fromController = TextEditingController();
   final _toController = TextEditingController();
-  DateTime? _selectedDate;
+  DateTime _selectedDate = DateTime.now();
   Shift _selectedShift = Shift.both;
 
   // Auto-suggestions related variables
@@ -272,9 +272,7 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
     }
 
     if (_formKey.currentState!.validate()) {
-      final formattedDate = _selectedDate != null
-          ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
-          : null;
+      final formattedDate = "${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}";
 
       final shiftValues = _selectedShift == Shift.both
           ? ["day", "night"]
@@ -338,49 +336,7 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
           key: _formKey,
           child: Column(
             children: [
-              // SEGMENTED CONTROL: One Way / Round Trip
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        "One Way",
-                        style: TextStyle(
-                           color: AppColors.primaryDarkest,
-                           fontWeight: FontWeight.bold,
-                           fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryDarker,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Round Trip",
-                        style: TextStyle(
-                           color: Colors.white.withValues(alpha: 0.5),
-                           fontWeight: FontWeight.w600,
-                           fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+
 
               // STACKED INPUTS WITH SWAP
               Stack(
@@ -445,40 +401,8 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
               ),
               const SizedBox(height: 16),
 
-              // DATE & PASSENGERS INLINE
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: InkWell(
-                      onTap: _pickDate,
-                      child: _buildDatePickerField(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // DUMMY PASSENGERS FIELD (Matches UI Image visually)
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.people_alt, color: Colors.white70, size: 20),
-                          const SizedBox(width: 10),
-                          const Text(
-                            "Passengers",
-                            style: TextStyle(color: Colors.white70, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              // 7-DAY HORIZONTAL SELECTOR
+              _buildHorizontalDateSelector(),
               const SizedBox(height: 16),
 
               // SHIFT / DEPARTURE TIME RADIO (We keep this since it's core Shuvmarg functionality)
@@ -651,38 +575,67 @@ class _BussSearchWidgetState extends State<BussSearchWidget> {
     );
   }
 
-  Widget _buildDatePickerField() {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.transparent, // Removed clash
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.calendar_month_rounded, color: Colors.white70, size: 20),
-          const SizedBox(width: 10),
-          Text(
-            _selectedDate != null
-                ? "${_selectedDate!.day} ${_getMonthName(_selectedDate!.month)} ${_selectedDate!.year}"
-                : "Travel Date",
-            style: TextStyle(
-              fontSize: 13, // Matched other dynamic fields
-              fontWeight: _selectedDate != null ? FontWeight.w600 : FontWeight.normal,
-              color: _selectedDate != null
-                  ? Colors.white
-                  : Colors.white70,
+  Widget _buildHorizontalDateSelector() {
+    return SizedBox(
+      height: 70,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: 7,
+        itemBuilder: (context, index) {
+          final currentDate = DateTime.now().add(Duration(days: index));
+          final isSelected = _selectedDate.year == currentDate.year &&
+                             _selectedDate.month == currentDate.month &&
+                             _selectedDate.day == currentDate.day;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedDate = currentDate;
+              });
+            },
+            child: Container(
+              width: 55,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.secondary : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                   Text(
+                      _getShortWeekDay(currentDate.weekday),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? AppColors.primaryDarkest : Colors.white54,
+                      ),
+                   ),
+                   const SizedBox(height: 4),
+                   Text(
+                      "${currentDate.day}",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: isSelected ? AppColors.primaryDarkest : Colors.white,
+                      ),
+                   ),
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  String _getMonthName(int month) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months[month - 1];
+  String _getShortWeekDay(int weekday) {
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return weekdays[weekday - 1];
   }
+
 }

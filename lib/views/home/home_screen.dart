@@ -92,8 +92,9 @@ class _HomeScreenState extends State<HomeScreen>
               unselectedItemColor: Colors.grey,
               dotIndicatorColor: AppColors.primary,
               paddingR: const EdgeInsets.symmetric(
-                  vertical: 5, horizontal: 16),
+                  vertical: 5, horizontal: 10), // Reduced horizontal padding to prevent minor overflow
               marginR: const EdgeInsets.all(0),
+              itemPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10), // Adjust internal bounds
               items: [
                 DotNavigationBarItem(icon: const Icon(Icons.home)),
                 DotNavigationBarItem(

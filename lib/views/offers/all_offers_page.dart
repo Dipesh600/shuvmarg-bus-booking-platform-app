@@ -22,17 +22,22 @@ class _AllOffersPageState extends State<AllOffersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = <Color>[
-      AppColors.primary,
-      AppColors.secondary,
-      Colors.green,
-      Colors.purple,
-      Colors.orange,
-    ];
+
 
     return Scaffold(
+      backgroundColor: AppColors.primaryDark,
       appBar: AppBar(
-        title: const Text('All Offers'),
+        backgroundColor: AppColors.primaryDark,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Exclusive Offers',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 22,
+          ),
+        ),
       ),
       body: Consumer<CouponProvider>(
         builder: (context, couponProvider, child) {
@@ -58,7 +63,43 @@ class _AllOffersPageState extends State<AllOffersPage> {
                         ],
                       )
                     : coupons.isEmpty
-                        ? const Center(child: Text('No coupons available'))
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.local_activity_outlined,
+                                    size: 64,
+                                    color: AppColors.secondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  "Oops! No deals hiding here.",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  "Check back later for exclusive Shuvmarg discounts.",
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
                         : ListView.separated(
                             padding: const EdgeInsets.all(12),
                             itemCount: coupons.length,
@@ -66,10 +107,8 @@ class _AllOffersPageState extends State<AllOffersPage> {
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final coupon = coupons[index];
-                              final bg = colors[index % colors.length];
                               return CouponOfferCard(
                                 coupon: coupon,
-                                backgroundColor: bg,
                               );
                             },
                           ),

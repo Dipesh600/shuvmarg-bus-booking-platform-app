@@ -35,7 +35,7 @@ class Coupon {
   final String discountType;
   final num discountValue;
   final num minOrderAmount;
-  final num maxDiscountAmount;
+  final num? maxDiscountAmount;
   final DateTime validFrom;
   final DateTime validTo;
   final int perUserLimit;
@@ -48,7 +48,7 @@ class Coupon {
     required this.discountType,
     required this.discountValue,
     required this.minOrderAmount,
-    required this.maxDiscountAmount,
+    this.maxDiscountAmount,
     required this.validFrom,
     required this.validTo,
     required this.perUserLimit,

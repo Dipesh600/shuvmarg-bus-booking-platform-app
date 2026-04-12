@@ -90,64 +90,39 @@ class _NewDashboardScreenState extends State<NewDashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // =========================
-              // 1. CUSTOM HEADER
+              // 1. BRAND HEADER & NOTIFICATIONS
               // =========================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-                child: Consumer2<ProfileProvider, NotificationProvider>(
-                  builder: (context, profileProvider, notificationProvider, _) {
+                child: Consumer<NotificationProvider>(
+                  builder: (context, notificationProvider, _) {
+                    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
                     final isLoggedIn = !profileProvider.needsLogin;
                     final unreadCount = notificationProvider.unreadCount;
-                    final userName = profileProvider.name ?? "Traveler";
-                    final avatarUrl = profileProvider.profilePic;
 
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 26,
-                              backgroundColor: AppColors.primaryDarker,
-                              backgroundImage: isLoggedIn && avatarUrl != null && avatarUrl.isNotEmpty
-                                  ? NetworkImage(avatarUrl)
-                                  : null,
-                              child: (!isLoggedIn || avatarUrl == null || avatarUrl.isEmpty)
-                                  ? const Icon(Icons.person, color: AppColors.primaryLight)
-                                  : null,
-                            ),
-                            const SizedBox(width: 14),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Welcome Back!!",
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  userName,
-                                  style: const TextStyle(
-                                    color: AppColors.secondary,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 18,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                        // BRAND LOGO TYPOGRAPHY
+                        const Text(
+                          "shuvmarg",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1.0,
+                          ),
                         ),
 
-                        // Notification Bell
+                        // NOTIFICATION BELL
                         Stack(
                           children: [
                             GestureDetector(
                               onTap: () async {
-                                if (!isLoggedIn) {
+                                final currentProfile = Provider.of<ProfileProvider>(context, listen: false);
+                                final isUserCurrentlyLoggedIn = !currentProfile.needsLogin;
+                                
+                                if (!isUserCurrentlyLoggedIn) {
                                   Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
                                 } else {
                                   final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationHistoryScreen()));
@@ -193,64 +168,27 @@ class _NewDashboardScreenState extends State<NewDashboardScreen> {
                   },
                 ),
               ),
-
-              // =========================
-              // 2. GLOBAL SEARCH PILL
-              // =========================
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Container(
-                  height: 56,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryDarker.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 20),
-                      const Text(
-                        "Search Here For Your Next Trip",
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const Spacer(),
-                      // White circle search icon holder
-                      Container(
-                        height: 36,
-                        width: 36,
-                        margin: const EdgeInsets.only(right: 10),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.search,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
 
               // =========================
               // 3. VEHICLE CATEGORIES ROW
               // =========================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildCategoryIcon(index: 0, icon: Icons.directions_bus, label: "Bus"),
-                    _buildCategoryIcon(index: 1, icon: Icons.airport_shuttle, label: "Mini Bus"),
-                    _buildCategoryIcon(index: 2, icon: Icons.local_taxi, label: "Hiace"),
-                    _buildCategoryIcon(index: 3, icon: Icons.directions_car, label: "Jeep"),
-                  ],
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _buildCategoryIcon(index: 0, icon: Icons.directions_bus, label: "Bus"),
+                      const SizedBox(width: 24),
+                      _buildCategoryIcon(index: 1, icon: Icons.airport_shuttle, label: "Mini Bus"),
+                      const SizedBox(width: 24),
+                      _buildCategoryIcon(index: 2, icon: Icons.local_taxi, label: "Hiace"),
+                      const SizedBox(width: 24),
+                      _buildCategoryIcon(index: 3, icon: Icons.directions_car, label: "Jeep"),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
