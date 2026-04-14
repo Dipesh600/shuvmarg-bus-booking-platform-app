@@ -24,15 +24,11 @@ class BusListCommon extends StatelessWidget {
                   ),
                 )
               : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: busList.length,
                   itemBuilder: (context, index) {
                     final bus = busList[index];
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        bottom: index < busList.length - 1 ? 16 : 0,
-                      ),
-                      child: _buildBusCard(context: context, bus: bus),
-                    );
+                    return _buildPremiumBusCard(context: context, bus: bus, isLast: index == busList.length - 1);
                   },
                 ),
         ),
@@ -41,7 +37,8 @@ class BusListCommon extends StatelessWidget {
     );
   }
 
-  Widget _buildBusCard({required BuildContext context, required TripData bus}) {
+  // The premium dark teal bus card
+  Widget _buildPremiumBusCard({required BuildContext context, required TripData bus, required bool isLast}) {
     return GestureDetector(
       onTap: () {
         if (onBusTap != null) {
@@ -51,285 +48,270 @@ class BusListCommon extends StatelessWidget {
         }
       },
       child: Container(
+        margin: EdgeInsets.only(bottom: isLast ? 0 : 20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.primaryDarkest, // Pure dark background
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.primaryDark.withOpacity(0.5), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-              spreadRadius: 0,
+              color: AppColors.primaryDarkest.withOpacity(0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
+            // TOP SECTION: Images & Title
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Operator Header
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Bus name and verified badge
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  // Bus Image Thumbnail
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: AppColors.primaryDark,
+                      image: bus.busDetail.fleetImages.isNotEmpty ? DecorationImage(
+                        image: NetworkImage(bus.busDetail.fleetImages.first),
+                        fit: BoxFit.cover,
+                      ) : null,
+                    ),
+                    child: bus.busDetail.fleetImages.isEmpty 
+                        ? const Icon(Icons.directions_bus, color: AppColors.primaryLight, size: 30)
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  
+                  // Title & Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const SizedBox(height: 8),
-                            // Bus Name
-                            Text(
-                              bus.busDetail.busName,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                            Expanded(
+                              child: Text(
+                                bus.busDetail.busName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            // Route
-                            Row(
-                              children: [
-                                Text(
-                                  bus.routeDetail.from,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey,
-                                  ),
+                            // Price Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Rs. ${bus.tripFare}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
                                 ),
-                                const Icon(Icons.arrow_forward_ios,
-                                    color: Colors.grey, size: 14),
-                                Text(
-                                  bus.routeDetail.to,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
+                              ),
                             )
                           ],
                         ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${bus.busDetail.vehicleType.toUpperCase()} • ${bus.busDetail.busType}',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        // Rating & Reviews
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, color: AppColors.secondary, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              bus.busDetail.averageRating > 0 ? bus.busDetail.averageRating.toStringAsFixed(1) : 'New',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '(${bus.busDetail.totalReviews} Reviews)',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.5),
+                                fontSize: 12,
+                              ),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+            
+            // TIMELINE SECTION
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              color: AppColors.primaryDark.withOpacity(0.3),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Departure
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bus.departureTime,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      // Rating and Reviews
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 60,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(8),
-                                  topRight: Radius.circular(8)),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.star, color: Colors.white, size: 14),
-                                SizedBox(width: 4),
-                                Text(
-                                  '4.2',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: 60,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: const BorderRadius.only(
-                                  bottomLeft: Radius.circular(8),
-                                  bottomRight: Radius.circular(8)),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.person_outline,
-                                    color: Colors.black, size: 14),
-                                SizedBox(width: 4),
-                                Text(
-                                  '17',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 4),
+                      Text(
+                        bus.routeDetail.from,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  // Time Row
-                  Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            bus.departureTime,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: List.generate(
-                          3,
-                          (index) => Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade400,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Journey Duration
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
+                  
+                  // Duration Arrow
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(
                           bus.routeDetail.duration,
                           style: const TextStyle(
+                            color: AppColors.secondary,
                             fontSize: 12,
-                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                      Row(
-                        children: List.generate(
-                          3,
-                          (index) => Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade400,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const SizedBox(width: 10),
+                            Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primaryLight)),
+                            Expanded(child: Container(height: 1, color: AppColors.primaryLight.withOpacity(0.5))),
+                            const Icon(Icons.chevron_right_rounded, color: AppColors.primaryLight, size: 16),
+                            const SizedBox(width: 6),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+
+                  // Arrival
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                       Text(
                         bus.arrivalTime,
                         style: const TextStyle(
-                          fontSize: 16,
+                          color: Colors.white,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(width: 14),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  Row(children: [
-                    Text(
-                      bus.busDetail.busNumber,
-                      style: const TextStyle(fontWeight: FontWeight.w400),
-                    )
-                  ]),
-                  const SizedBox(height: 16),
-
-                  // Seats Left and Price
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                      const SizedBox(height: 4),
                       Text(
-                        '${bus.busDetail.totalSeats} Seats Available',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF4CAF50),
-                          fontWeight: FontWeight.w500,
+                        bus.routeDetail.to,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 13,
                         ),
                       ),
-                      Text(
-                        'Rs. ${bus.tripFare}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      )
                     ],
                   ),
                 ],
               ),
             ),
-            // Amenities Banner
-            if (bus.busDetail.amenities.isNotEmpty)
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(12),
-                    bottomRight: Radius.circular(12),
+
+            // BOTTOM RIBBON
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Amenities Quick View
+                  Row(
+                    children: bus.busDetail.amenities.take(3).map((a) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Icon(_getAmenityIcon(a), color: Colors.white.withOpacity(0.7), size: 18),
+                      );
+                    }).toList(),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 30,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: bus.busDetail.amenities.length,
-                          itemBuilder: (context, index) {
-                            return Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                bus.busDetail.amenities[index],
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                  
+                  // Seats Left Pill
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: bus.availableSeats > 10 ? AppColors.primary.withOpacity(0.2) : AppColors.secondary.withOpacity(0.15),
+                      border: Border.all(color: bus.availableSeats > 10 ? AppColors.primary : AppColors.secondary, width: 1),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ],
-                ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.event_seat_rounded, size: 14, color: bus.availableSeats > 10 ? AppColors.primaryLight : AppColors.secondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${bus.availableSeats} Seats Left',
+                          style: TextStyle(
+                            color: bus.availableSeats > 10 ? Colors.white : AppColors.secondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
               ),
+            )
           ],
         ),
       ),
     );
+  }
+
+  IconData _getAmenityIcon(String amenity) {
+    switch (amenity.toLowerCase()) {
+      case 'ac':
+        return Icons.ac_unit_outlined;
+      case 'wifi':
+        return Icons.wifi;
+      case 'charging port':
+        return Icons.power_outlined;
+      case 'blanket':
+        return Icons.blinds_closed_outlined;
+      case 'water bottle':
+        return Icons.water_drop_outlined;
+      default:
+        return Icons.check_circle_outline;
+    }
   }
 
   void _showBusDetails(BuildContext context, TripData bus) {
@@ -338,12 +320,12 @@ class BusListCommon extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.85,
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.primaryDarkest,
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
           ),
         ),
         child: Column(
@@ -354,75 +336,78 @@ class BusListCommon extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             // Header
             Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
+              padding: const EdgeInsets.all(24),
+              child: Row(
                 children: [
-                  Text(
-                    bus.busDetail.busName,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      image: bus.busDetail.fleetImages.isNotEmpty ? DecorationImage(
+                        image: NetworkImage(bus.busDetail.fleetImages.first),
+                        fit: BoxFit.cover,
+                      ) : null,
+                      color: AppColors.primaryDark,
                     ),
+                    child: bus.busDetail.fleetImages.isEmpty ? const Icon(Icons.directions_bus, color: Colors.white, size: 28) : null,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    bus.busDetail.busNumber,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          bus.busDetail.busName,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          bus.busDetail.busNumber,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(),
+            const Divider(color: AppColors.primaryDark, height: 1),
             // Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('Route',
-                        '${bus.routeDetail.from} → ${bus.routeDetail.to}'),
+                    _buildDetailRow('Route', '${bus.routeDetail.from} → ${bus.routeDetail.to}'),
                     _buildDetailRow('Date', bus.tripDate),
                     _buildDetailRow('Departure', bus.departureTime),
                     _buildDetailRow('Arrival', bus.arrivalTime),
                     _buildDetailRow('Duration', bus.routeDetail.duration),
                     _buildDetailRow('Price', 'Rs. ${bus.tripFare}'),
-                    _buildDetailRow(
-                        'Available Seats', '${bus.busDetail.totalSeats}'),
-                    _buildDetailRow('Shift', bus.shift),
-                    const SizedBox(height: 8),
+                    _buildDetailRow('Available Seats', '${bus.availableSeats}/${bus.busDetail.totalSeats}'),
+                    _buildDetailRow('Shift', bus.shift.toUpperCase()),
+                    const SizedBox(height: 24),
+                    const Text('Amenities', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: bus.busDetail.amenities
-                          .map((amenity) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: AppColors.primary.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: Text(
-                                  amenity,
-                                  style: const TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ))
-                          .toList(),
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: bus.busDetail.amenities.map((amenity) => _buildAmenityChip(amenity)).toList(),
                     ),
                   ],
                 ),
@@ -436,17 +421,17 @@ class BusListCommon extends StatelessWidget {
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
+                fontSize: 15,
+                color: Colors.white.withOpacity(0.5),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -455,8 +440,9 @@ class BusListCommon extends StatelessWidget {
             child: Text(
               value,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
           ),
@@ -466,45 +452,23 @@ class BusListCommon extends StatelessWidget {
   }
 
   Widget _buildAmenityChip(String amenity) {
-    final IconData icon;
-    switch (amenity.toLowerCase()) {
-      case 'ac':
-        icon = Icons.ac_unit_outlined;
-        break;
-      case 'wifi':
-        icon = Icons.wifi;
-        break;
-      case 'charging port':
-        icon = Icons.power_outlined;
-        break;
-      case 'blanket':
-        icon = Icons.blinds_closed_outlined;
-        break;
-      case 'water bottle':
-        icon = Icons.water_drop_outlined;
-        break;
-      default:
-        icon = Icons.check_circle_outline;
-    }
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppColors.primary),
-          const SizedBox(width: 6),
+          Icon(_getAmenityIcon(amenity), size: 16, color: Colors.white),
+          const SizedBox(width: 8),
           Text(
             amenity,
             style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.primary,
-              fontWeight: FontWeight.w500,
+              fontSize: 13,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

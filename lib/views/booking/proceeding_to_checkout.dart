@@ -107,9 +107,15 @@ class _ProceedingToCheckoutState extends State<ProceedingToCheckout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: AppColors.primaryDarkest,
       appBar: AppBar(
-        title: const Text("Ticket Summary"),
+        title: const Text(
+          "Ticket Summary",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppColors.primaryDark,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -555,7 +561,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
           const SizedBox(height: 20),
           // Boarding Points Section
           BoardingPointSection(
-            boardingPoints: widget.busData.busDetail.amenities,
+            boardingPoints: widget.busData.busDetail.boardingPoints,
             selectedPoint: _selectedBoardingPoint,
             onChanged: (String? newValue) {
               setState(() {
