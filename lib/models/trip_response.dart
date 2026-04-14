@@ -2,21 +2,30 @@ class TripResponse {
   final bool success;
   final String message;
   final int results;
+  final int total;      // Total matching trips (for pagination)
+  final int page;       // Current page
+  final int totalPages; // Total pages
   final List<TripData> data;
 
   TripResponse({
     required this.success,
     required this.message,
     required this.results,
+    this.total = 0,
+    this.page = 1,
+    this.totalPages = 1,
     required this.data,
   });
 
   factory TripResponse.fromJson(Map<String, dynamic> json) {
     return TripResponse(
-      success: json['success'],
-      message: json['message'],
-      results: json['results'],
-      data: (json['data'] as List)
+      success:    json['success'] ?? false,
+      message:    json['message'] ?? '',
+      results:    json['results'] ?? 0,
+      total:      json['total'] ?? 0,
+      page:       json['page'] ?? 1,
+      totalPages: json['totalPages'] ?? 1,
+      data: (json['data'] as List? ?? [])
           .map((e) => TripData.fromJson(e))
           .toList(),
     );

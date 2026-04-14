@@ -171,31 +171,110 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
   bool _isLoadingYatraPoints = true;
   bool _isBooking = false;
   String? _selectedBoardingPoint;
+  String? _selectedDroppingPoint;
+
+  // Passenger details per seat (DoT compliance)
+  // Key = seat number (e.g. "A1"), value = passenger name
+  final Map<String, TextEditingController> _passengerControllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _finalPrice = widget.totalPrice;
+    _selectedBoardingPoint = null;
+    _selectedDroppingPoint = null;
+    _fetchUserDetails();
+    // Pre-create a controller for each seat
+    for (final seat in widget.selectedSeats.split(',').map((s) => s.trim())) {
+      _passengerControllers[seat] = TextEditingController(text: widget.name);
+    }
+  }
+
+  @override
+  void dispose() {
+    _couponController.dispose();
+    _yatraPointsController.dispose();
+    for (final c in _passengerControllers.values) c.dispose();
+    super.dispose();
+  }
+
+  /// Build passengerDetails list for the API
+  List<Map<String, dynamic>> _buildPassengerDetails() {
+    final seats = widget.selectedSeats.split(',').map((s) => s.trim()).toList();
+    return seats.asMap().entries.map((entry) {
+      final seat   = entry.value;
+      final name   = _passengerControllers[seat]?.text.trim() ?? widget.name;
+      return {
+        'name':   name.isEmpty ? widget.name : name,
+        'seatNo': seat,
+        'age':    null,    // future: collect from form
+        'gender': null,    // future: collect from form
+      };
+    }).toList();
+  }
+
+  /// Resolve selected StopPoint object by name
+  StopPoint? _resolvePoint(List<StopPoint> points, String? name) {
+    if (name == null) return null;
+    try {
+      return points.firstWhere((p) => p.pointName == name);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic>? _buildBoardingPointMap() {
+    final point = _resolvePoint(
+        widget.busData.busDetail.boardingPoints, _selectedBoardingPoint);
+    if (point == null) return null;
+    return {
+      'name': point.pointName,
+      'time': point.time,
+      if (point.lat != null) 'lat': point.lat,
+      if (point.lng != null) 'lng': point.lng,
+    };
+  }
+
+  Map<String, dynamic>? _buildDroppingPointMap() {
+    final point = _resolvePoint(
+        widget.busData.busDetail.droppingPoints, _selectedDroppingPoint);
+    if (point == null) return null;
+    return {
+      'name': point.pointName,
+      'time': point.time,
+      if (point.lat != null) 'lat': point.lat,
+      if (point.lng != null) 'lng': point.lng,
+    };
+  }
 
   Future<void> _directBookTicket() async {
-    setState(() {
-      _isBooking = true;
-    });
+    setState(() { _isBooking = true; });
+
+    final seats = widget.selectedSeats.split(',').map((s) => s.trim()).toList();
+    final tempId = 'TEMP_${DateTime.now().millisecondsSinceEpoch}';
+
     Map<String, dynamic> data = {
-      "tripId": widget.busData.id,
-      "seatNumbers": widget.selectedSeats.split(',').map((s) => s.trim()).toList(),
-      "gateway": "esewa",
-      "transactionId": "TEST_TXN_${DateTime.now().millisecondsSinceEpoch}",
-      if (_isYatraPointsApplied) "yatrapointsUsed": _yatraPointsUsed,
-      if (_selectedBoardingPoint != null)
-        "boardingPoint": _selectedBoardingPoint,
+      'scheduleId':       widget.busData.id,
+      'tempBookingId':    tempId,
+      'paymentId':        'TEST_TXN_${DateTime.now().millisecondsSinceEpoch}',
+      'paymentAmount':    _finalPrice,
+      'originalAmount':   widget.totalPrice,
+      'seatNumbers':      seats,
+      'gateway':          'esewa',
+      'passengerDetails': _buildPassengerDetails(),
+      if (_buildBoardingPointMap() != null) 'boardingPoint': _buildBoardingPointMap(),
+      if (_buildDroppingPointMap() != null) 'droppingPoint': _buildDroppingPointMap(),
+      if (_isCouponApplied) 'couponCode': _couponController.text.trim(),
+      if (_isYatraPointsApplied) 'yatrapointsToUse': _yatraPointsUsed,
     };
+
     final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
     final response = await ticketProvider.bookTicket(data);
 
-    setState(() {
-      _isBooking = false;
-    });
+    setState(() { _isBooking = false; });
 
     if (response.status) {
-      // ignore: use_build_context_synchronously
-      String ticketId = response.ticketId;
-      // ignore: use_build_context_synchronously
+      final ticketId = response.ticketId;
       AwesomeDialog(
         context: context,
         dialogType: DialogType.success,
@@ -227,23 +306,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         textColor: Colors.white,
         fontSize: 16.0,
       );
-      print("my error ${response.message}");
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _finalPrice = widget.totalPrice;
-    _selectedBoardingPoint = null;
-    _fetchUserDetails();
-  }
-
-  @override
-  void dispose() {
-    _couponController.dispose();
-    _yatraPointsController.dispose();
-    super.dispose();
   }
 
   Future<void> _fetchUserDetails() async {
@@ -486,35 +549,39 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
     }
   }
 
-  void verifyTransactionStatus(refId) async {
-    setState(() {
-      _isBooking = true;
-    });
+  void verifyTransactionStatus(String refId) async {
+    setState(() { _isBooking = true; });
+
+    final seats = widget.selectedSeats.split(',').map((s) => s.trim()).toList();
+    final tempId = 'ESEWA_${DateTime.now().millisecondsSinceEpoch}';
+
     Map<String, dynamic> data = {
-      "tripId": widget.busData.id,
-      "seatNumbers": widget.selectedSeats.split(',').map((s) => s.trim()).toList(),
-      "gateway": "esewa",
-      "transactionId": refId,
-      if (_isYatraPointsApplied) "yatrapointsUsed": _yatraPointsUsed,
-      if (_selectedBoardingPoint != null)
-        "boardingPoint": _selectedBoardingPoint,
+      'scheduleId':       widget.busData.id,
+      'tempBookingId':    tempId,
+      'paymentId':        refId,
+      'paymentAmount':    _finalPrice,
+      'originalAmount':   widget.totalPrice,
+      'seatNumbers':      seats,
+      'gateway':          'esewa',
+      'passengerDetails': _buildPassengerDetails(),
+      if (_buildBoardingPointMap() != null) 'boardingPoint': _buildBoardingPointMap(),
+      if (_buildDroppingPointMap() != null) 'droppingPoint': _buildDroppingPointMap(),
+      if (_isCouponApplied) 'couponCode': _couponController.text.trim(),
+      if (_isYatraPointsApplied) 'yatrapointsToUse': _yatraPointsUsed,
     };
+
     final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
     final response = await ticketProvider.bookTicket(data);
 
-    setState(() {
-      _isBooking = false;
-    });
+    setState(() { _isBooking = false; });
 
     if (response.status) {
-      // ignore: use_build_context_synchronously
-      String ticketId = response.ticketId;
-      // ignore: use_build_context_synchronously
+      final ticketId = response.ticketId;
       AwesomeDialog(
         context: context,
         dialogType: DialogType.success,
         animType: AnimType.scale,
-        title: 'Success',
+        title: 'Booking Confirmed!',
         desc: response.message,
         btnOkOnPress: () {
           Navigator.push(
@@ -529,7 +596,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
                         role: widget.role,
                       )));
         },
-        btnOkText: 'Ticket',
+        btnOkText: 'View Ticket',
       ).show();
     } else {
       ToastService.showToast(
@@ -541,7 +608,6 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         textColor: Colors.white,
         fontSize: 16.0,
       );
-      print("my error ${response.message}");
     }
   }
 
