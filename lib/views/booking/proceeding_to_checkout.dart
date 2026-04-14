@@ -14,6 +14,7 @@ import 'package:sumarg/providers/profile_provider.dart';
 import 'package:sumarg/models/trip_response.dart';
 import 'package:sumarg/models/coupon_response_model.dart';
 import 'package:sumarg/models/yatra_points_response.dart';
+import 'package:sumarg/models/prepare_booking_response.dart';
 import 'package:sumarg/utils/color_constants.dart';
 import 'package:sumarg/utils/esewa_config.dart';
 import 'package:sumarg/views/auth/login_screen.dart';
@@ -172,6 +173,10 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
   bool _isBooking = false;
   String? _selectedBoardingPoint;
   String? _selectedDroppingPoint;
+
+  // Two-phase atomic booking state
+  String? _tempBookingId;         // server-generated temp booking ID from prepareBooking
+  int?    _serverPaymentAmount;   // server-validated amount from prepareBooking
 
   // Passenger details per seat (DoT compliance)
   // Key = seat number (e.g. "A1"), value = passenger name
@@ -517,8 +522,48 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
     });
   }
 
-// Esewa
+// eSewa — two-phase atomic payment
   _payThroughEsewa() async {
+    // Phase 1: prepareBooking — lock seats + get server-validated amount
+    setState(() { _isBooking = true; });
+
+    final seats = widget.selectedSeats.split(',').map((s) => s.trim()).toList();
+    final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
+
+    final PrepareBookingResponse prepareResp = await ticketProvider.prepareBooking({
+      'scheduleId':       widget.busData.id,
+      'seatNumbers':      seats,
+      'paymentAmount':    _finalPrice,
+      'originalAmount':   widget.totalPrice,
+      'passengerDetails': _buildPassengerDetails(),
+      if (_buildBoardingPointMap() != null) 'boardingPoint': _buildBoardingPointMap(),
+      if (_buildDroppingPointMap() != null) 'droppingPoint': _buildDroppingPointMap(),
+      if (_isCouponApplied) 'couponCode': _couponController.text.trim(),
+      if (_isYatraPointsApplied) 'yatrapointsToUse': _yatraPointsUsed,
+    });
+
+    setState(() { _isBooking = false; });
+
+    if (!prepareResp.status) {
+      ToastService.showToast(
+        msg: prepareResp.message.isNotEmpty
+            ? prepareResp.message
+            : 'Seats unavailable. Please select different seats.',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 4,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return;
+    }
+
+    // Store server-validated values for Phase 2 (confirmBooking)
+    _tempBookingId       = prepareResp.tempBookingId;
+    _serverPaymentAmount = prepareResp.paymentAmount ?? _finalPrice;
+
+    // Phase 2: Launch eSewa SDK with server-validated amount
     try {
       EsewaFlutterSdk.initPayment(
         esewaConfig: EsewaConfig(
@@ -529,23 +574,37 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         esewaPayment: EsewaPayment(
           productId: widget.busData.id,
           productName: widget.busData.busDetail.busName,
-          productPrice: _finalPrice.toString(),
+          // Use server-validated amount — NOT locally calculated price
+          productPrice: _serverPaymentAmount.toString(),
           callbackUrl: '',
         ),
         onPaymentSuccess: (EsewaPaymentSuccessResult data) {
-          debugPrint(":::SUCCESS::: => $data");
-          // bookTicket(data.refId)
+          debugPrint(":::ESEWA SUCCESS::: => ${data.refId}");
           verifyTransactionStatus(data.refId);
         },
         onPaymentFailure: (data) {
-          debugPrint(":::FAILURE::: => $data");
+          debugPrint(":::ESEWA FAILURE::: => $data");
+          ToastService.showToast(
+            msg: 'Payment failed. Please try again.',
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.BOTTOM,
+            timeInSecForIosWeb: 3,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+            fontSize: 16.0,
+          );
         },
         onPaymentCancellation: (data) {
-          debugPrint(":::CANCELLATION::: => $data");
+          debugPrint(":::ESEWA CANCELLATION::: => $data");
+          // Clear temp booking state
+          setState(() {
+            _tempBookingId = null;
+            _serverPaymentAmount = null;
+          });
         },
       );
     } on Exception catch (e) {
-      debugPrint("EXCEPTION : ${e.toString()}");
+      debugPrint("ESEWA EXCEPTION : ${e.toString()}");
     }
   }
 
@@ -553,13 +612,17 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
     setState(() { _isBooking = true; });
 
     final seats = widget.selectedSeats.split(',').map((s) => s.trim()).toList();
-    final tempId = 'ESEWA_${DateTime.now().millisecondsSinceEpoch}';
+
+    // Use server-validated amount from prepareBooking (not locally calculated)
+    // This ensures eSewa verify on backend matches the amount we sent to eSewa SDK
+    final int confirmedAmount = _serverPaymentAmount ?? _finalPrice;
+    final String confirmedTempId = _tempBookingId ?? 'ESEWA_${DateTime.now().millisecondsSinceEpoch}';
 
     Map<String, dynamic> data = {
       'scheduleId':       widget.busData.id,
-      'tempBookingId':    tempId,
-      'paymentId':        refId,
-      'paymentAmount':    _finalPrice,
+      'tempBookingId':    confirmedTempId,
+      'paymentId':        refId,          // eSewa refId — verified server-side
+      'paymentAmount':    confirmedAmount, // server-validated amount
       'originalAmount':   widget.totalPrice,
       'seatNumbers':      seats,
       'gateway':          'esewa',
@@ -573,7 +636,11 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
     final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
     final response = await ticketProvider.bookTicket(data);
 
-    setState(() { _isBooking = false; });
+    setState(() {
+      _isBooking = false;
+      _tempBookingId = null;        // clear temp booking state
+      _serverPaymentAmount = null;
+    });
 
     if (response.status) {
       final ticketId = response.ticketId;

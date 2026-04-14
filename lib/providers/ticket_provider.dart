@@ -3,6 +3,7 @@ import '../controllers/ticket_controller/ticket_controller.dart';
 import '../models/ticket_history_response.dart';
 import '../models/trip_response.dart';
 import '../models/ticket_booking_response.dart';
+import '../models/prepare_booking_response.dart';
 import '../models/yatra_points_response.dart';
 import '../models/for_all_response.dart';
 import '../utils/local_storage_service.dart';
@@ -41,6 +42,12 @@ class TicketProvider extends ChangeNotifier {
 
   Future<TicketBookingResponse> bookTicket(dynamic data) async {
     return await _ticketController.bookTicket(data);
+  }
+
+  /// Phase 1 of atomic booking: prepareBooking.
+  /// Locks seats + returns server-validated paymentAmount.
+  Future<PrepareBookingResponse> prepareBooking(Map<String, dynamic> data) async {
+    return await _ticketController.prepareBooking(data);
   }
 
   Future<YatraPointsResponse> validateYatraPoints(dynamic data) async {

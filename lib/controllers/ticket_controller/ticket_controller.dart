@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:sumarg/apis/api_services.dart';
 import 'package:sumarg/models/for_all_response.dart';
+import 'package:sumarg/models/prepare_booking_response.dart';
 import 'package:sumarg/models/ticket_booking_response.dart';
 import 'package:sumarg/models/ticket_history_response.dart';
 import 'package:sumarg/models/trip_response.dart';
@@ -58,6 +59,29 @@ class TicketController {
     } catch (error) {
       return TicketBookingResponse(
           status: false, message: 'Faild to Book Ticket: $error', ticketId: "");
+    }
+  }
+
+  /// prepareBooking — Step 1 of the two-phase atomic booking.
+  ///
+  /// Locks seats temporarily and returns the server-validated paymentAmount.
+  /// The returned paymentAmount MUST be passed to eSewa SDK instead of the
+  /// locally-calculated price to prevent amount manipulation.
+  ///
+  /// On success, also returns tempBookingId which ties the seat lock to
+  /// the subsequent confirmBooking call.
+  Future<PrepareBookingResponse> prepareBooking(Map<String, dynamic> data) async {
+    final ApiService apiService = ApiService();
+    const String url = ApiEndpoints.prepareBooking;
+    try {
+      final response = await apiService.postDataWithToken(url, data);
+      return PrepareBookingResponse.fromJson(
+          response is Map<String, dynamic> ? response : {});
+    } catch (error) {
+      return PrepareBookingResponse(
+        status:  false,
+        message: 'Failed to prepare booking: $error',
+      );
     }
   }
 

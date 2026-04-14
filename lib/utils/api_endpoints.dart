@@ -23,11 +23,13 @@ class ApiEndpoints {
   static const String ticket = "$api/ticket";
   static const String searchTicket = "$baseUrl$api/public/searchTrips";
   static const String getseats = "$baseUrl$ticket/getSeats";
+  static const String prepareBooking = "$baseUrl$ticket/prepareBooking";
   static const String bookTicket = "$baseUrl$ticket/bookTicket";
   static const String bookingHistory = "$baseUrl$ticket/getMyTicketHistory";
   static const String validateYatraPoints =
       "$baseUrl$ticket/validateYatraPoints";
   static const String cancelticket = "$baseUrl$ticket/cancelTicket";
+
 
 // Push Notification
   static const String pushnoti = "$api/pushnoti";
