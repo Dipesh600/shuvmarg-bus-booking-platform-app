@@ -103,6 +103,11 @@ class NavigationService {
         totalSeats: data['totalSeats'] ?? 0,
         seatLayout: data['seatLayout'] ?? '',
         amenities: List<String>.from(data['amenities'] ?? []),
+        fleetImages: List<String>.from(data['fleetImages'] ?? []),
+        averageRating: (data['averageRating'] ?? 0).toDouble(),
+        totalReviews: data['totalReviews'] ?? 0,
+        boardingPoints: [],
+        droppingPoints: [],
       );
 
       final routeDetail = RouteDetail(
@@ -124,6 +129,7 @@ class NavigationService {
         shift: data['shift'] ?? '',
         busDetail: busDetail,
         routeDetail: routeDetail,
+        availableSeats: data['availableSeats'] ?? 0,
       );
 
       Navigator.pushReplacement(
