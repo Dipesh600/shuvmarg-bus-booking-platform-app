@@ -3,46 +3,47 @@ import 'package:sumarg/models/referal_dashboard_response.dart';
 import 'package:sumarg/models/referal_history_response.dart';
 import 'package:sumarg/utils/api_endpoints.dart';
 
+/// Referral Controller V2 — Progressive Unlock
+///
+/// Handles API communication for the referral system.
+/// Backend returns per-referral journey progress instead of flat points.
 class ReferalController {
   final ApiService apiService = ApiService();
 
-//
+  /// Fetch the referral dashboard with summary stats + per-referral breakdown.
   Future<ReferralDashboard> getReferalDashboard() async {
     try {
       final response =
           await apiService.getDataWithToken(ApiEndpoints.refralDashboard);
-      print("response4 ${response}");
 
-      final seatsResponse =
-          ReferralDashboard.fromJson(response);
-      print("seatsResponse ${seatsResponse}");
-      return seatsResponse;
+      return ReferralDashboard.fromJson(response);
     } catch (error) {
       return ReferralDashboard(
-        status: false, 
-        message: 'Failed to fetch referral dashboard: $error', 
-        data: ReferralData(
+        status: false,
+        message: 'Failed to fetch referral dashboard: $error',
+        data: ReferralDashboardData(
           referralCode: '',
-          totalUsersUsedCode: 0,
-          totalReferralPoints: 0,
-          pointsBalance: 0.0,
-          completedReferrals: 0,
-          pendingReferrals: 0,
-          hasMoreReferrals: false,
+          summary: ReferralSummary(
+            totalReferrals: 0,
+            activeReferrals: 0,
+            fullyUnlocked: 0,
+            expiredReferrals: 0,
+            totalEarned: 0,
+            totalLocked: 0,
+          ),
+          referrals: [],
         ),
       );
     }
   }
-// Get Referal history 
- Future<ReferalHistory> getReferalHistory() async {
+
+  /// Fetch referral history with per-referral unlock timeline.
+  Future<ReferalHistory> getReferalHistory() async {
     try {
       final response =
           await apiService.getDataWithToken(ApiEndpoints.referalHistory);
-      print("response4 ${response}");
 
-      final historyResponse = ReferalHistory.fromJson(response);
-      print("historyResponse ${historyResponse}");
-      return historyResponse;
+      return ReferalHistory.fromJson(response);
     } catch (error) {
       return ReferalHistory(
         status: false,

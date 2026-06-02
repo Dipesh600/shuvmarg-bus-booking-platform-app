@@ -23,32 +23,23 @@ class AuthController {
       final response = await http.post(
         Uri.parse(loginUrl),
         headers: {'Content-Type': 'application/json'},
-        body: json
-            .encode({'emailOrPhone': email, 'password': password}),
+        body: json.encode({'emailOrPhone': email, 'password': password}),
       );
-      if (kDebugMode) {
-        print("loginresponse ${response.body}");
-      }
-      if (kDebugMode) {
-        print("loginstatuscode ${response.statusCode}");
-      }
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
+      
+      final responseData = json.decode(response.body);
+      bool isSuccess = responseData['success'] ?? responseData['status'] ?? false;
+      String message = responseData['message'] ?? 'Login failed';
+
+      if (response.statusCode == 200 && isSuccess) {
         final loginResponse = LoginResponse.fromJson(responseData);
         await _saveLoginResponse(loginResponse);
-        if (kDebugMode) {
-          print("mylogindetail $loginResponse");
-        }
-        return loginResponse;
-      } else if (response.statusCode == 401) {
-        final responseData = json.decode(response.body);
-        final loginResponse = ApiResponse.fromJson(responseData);
         return loginResponse;
       } else {
-        return null;
+        // Return as ApiResponse to capture the error message
+        return ApiResponse(success: false, message: message);
       }
     } catch (error) {
-      return null;
+      return ApiResponse(success: false, message: "Network error: $error");
     }
   }
 
@@ -59,6 +50,9 @@ class AuthController {
     await prefs.setBool('success', loginResponse.success);
     await prefs.setString('message', loginResponse.message);
     await prefs.setString('accessToken', loginResponse.accessToken);
+    if (loginResponse.refreshToken != null) {
+      await prefs.setString('refreshToken', loginResponse.refreshToken!);
+    }
     final userData = loginResponse.user;
 
     await prefs.setString('userId', userData.id);
@@ -88,6 +82,7 @@ class AuthController {
     await prefs.remove('success');
     await prefs.remove('message');
     await prefs.remove('accessToken');
+    await prefs.remove('refreshToken');
     await prefs.remove('userId');
     await prefs.remove('name');
     await prefs.remove('email');
@@ -110,7 +105,7 @@ class AuthController {
   }
   // Register
 
-  Future registeer(String phnenumber, [String? referralCode]) async {
+  Future<ForAllResponse> register(String phnenumber, [String? referralCode]) async {
     try {
       final response = await http.post(
         Uri.parse(registerUrl),
@@ -119,22 +114,16 @@ class AuthController {
           "phone": phnenumber,
         }),
       );
-      print("register response: ${response.body}");
       
-      try {
-        final responseData = json.decode(response.body);
-        final registerResponse = ForAllResponse.fromJson(responseData);
-        return registerResponse;
-      } catch (_) {
-          return ForAllResponse(
-            status: false,
-            message: 'Server error: Provider timeout or SMS failure. Please try again.',
-          );
-      }
+      final responseData = json.decode(response.body);
+      return ForAllResponse(
+        status: responseData['status'] ?? responseData['success'] ?? false,
+        message: responseData['message'] ?? 'Registration failed',
+      );
     } catch (error) {
       return ForAllResponse(
         status: false,
-        message: 'Network error: Cannot reach the backend.',
+        message: 'Network error: Cannot reach the backend. $error',
       );
     }
   }
@@ -251,7 +240,7 @@ class AuthController {
 // Forgot Password
   Future<ForAllResponse> forgotPassword(String phoneNumber) async {
     final ApiService apiService = ApiService();
-    const String forgotPasswordUrl = ApiEndpoints.passwordReset;
+    final String forgotPasswordUrl = ApiEndpoints.passwordReset;
 
     try {
       final data = {'emailOrPhone': phoneNumber};
@@ -272,7 +261,7 @@ class AuthController {
   Future<ForAllResponse> verifyOtpForResetPass(
       String email, otp) async {
     final ApiService apiService = ApiService();
-    const String verifyOtpForPassUrl = ApiEndpoints.verifyOtpForPass;
+    final String verifyOtpForPassUrl = ApiEndpoints.verifyOtpForPass;
     try {
       final data = {"emailOrPhone": email, "otp": otp};
       final response =
@@ -295,7 +284,7 @@ class AuthController {
     email,
   ) async {
     final ApiService apiService = ApiService();
-    const String resetPasswordUrl = ApiEndpoints.resetPassword;
+    final String resetPasswordUrl = ApiEndpoints.resetPassword;
     try {
       final data = {
         "emailOrPhone": email,
@@ -318,7 +307,7 @@ class AuthController {
   // Get user details
   Future<UserDetailResponse> getUserDetails() async {
     final ApiService apiService = ApiService();
-    const String getUserDetailsUrl = ApiEndpoints.getUserDetails;
+    final String getUserDetailsUrl = ApiEndpoints.getUserDetails;
     try {
       final response =
           await apiService.getDataWithToken(getUserDetailsUrl);
@@ -343,7 +332,7 @@ class AuthController {
     BuildContext? context,
   }) async {
     final ApiService apiService = ApiService();
-    const String updateProfileUrl = ApiEndpoints.updateProfileDetail;
+    final String updateProfileUrl = ApiEndpoints.updateProfileDetail;
     
     try {
       Map<String, String> fields = {
@@ -380,7 +369,7 @@ class AuthController {
     required String newPassword,
   }) async {
     final ApiService apiService = ApiService();
-    const String updateProfileUrl = ApiEndpoints.updateProfileDetail;
+    final String updateProfileUrl = ApiEndpoints.updateProfileDetail;
 
     try {
       Map<String, String> bodyData = {

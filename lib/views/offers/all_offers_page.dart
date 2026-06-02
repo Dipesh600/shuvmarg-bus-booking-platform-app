@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:sumarg/providers/coupon_provider.dart';
-import 'package:sumarg/utils/color_constants.dart';
+import 'package:sumarg/controllers/coupon_controller/coupon_controller.dart';
+import 'package:sumarg/models/get_coupn_respnse_model.dart' as list_model;
+import 'package:sumarg/utils/app_theme.dart';
 import 'package:sumarg/views/widgets/coupon_offer_card.dart';
+import 'package:sumarg/views/widgets/status_state_widget.dart';
+import 'dart:async';
 
 class AllOffersPage extends StatefulWidget {
   const AllOffersPage({super.key});
@@ -12,108 +14,197 @@ class AllOffersPage extends StatefulWidget {
 }
 
 class _AllOffersPageState extends State<AllOffersPage> {
+  final CouponController _controller = CouponController();
+  List<list_model.Coupon> _coupons = [];
+  bool _loading = true;
+  String _error = '';
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CouponProvider>().fetchCoupons();
-    });
+    _fetch();
+    // Auto-refresh every 5 minutes silently
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) => _fetch(silent: true));
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetch({bool silent = false}) async {
+    if (!silent && mounted) {
+      setState(() {
+        _loading = _coupons.isEmpty;
+        _error = '';
+      });
+    }
+    try {
+      final res = await _controller.getAllCouponsWithExpired();
+      if (!mounted) return;
+      setState(() {
+        if (res.success) {
+          _coupons = res.data;
+          _error = '';
+        } else {
+          _error = res.message;
+        }
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-
+    // Split into active and expired for section headers
+    final now = DateTime.now();
+    final active = _coupons.where((c) => now.isBefore(c.validTo)).toList();
+    final expired = _coupons.where((c) => now.isAfter(c.validTo)).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.primaryDark,
+      backgroundColor: AppTheme.primaryDark,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryDark,
+        backgroundColor: AppTheme.primaryDark,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
         title: const Text(
-          'Exclusive Offers',
+          'All Offers',
           style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: 22,
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            fontFamily: AppTheme.fontFamily,
           ),
         ),
       ),
-      body: Consumer<CouponProvider>(
-        builder: (context, couponProvider, child) {
-          final loading = couponProvider.isLoadingCoupons;
-          final error = couponProvider.couponError;
-          final coupons = couponProvider.coupons;
-
-          return RefreshIndicator(
-            onRefresh: couponProvider.fetchCoupons,
-            child: loading
-                ? const Center(child: CircularProgressIndicator())
-                : error.isNotEmpty
+      body: RefreshIndicator(
+        color: AppTheme.accentLime,
+        backgroundColor: AppTheme.primaryDarker,
+        onRefresh: () => _fetch(),
+        child: _loading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppTheme.accentLime))
+            : _error.isNotEmpty && !_error.toLowerCase().contains("no coupons")
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
+                        child: StatusStateWidget.error(
+                          rawError: _error,
+                          onRetry: () => _fetch(),
+                        ),
+                      ),
+                    ],
+                  )
+                : (_coupons.isEmpty || _error.toLowerCase().contains("no coupons"))
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
+                          const SizedBox(height: 60),
                           Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              error,
-                              style: const TextStyle(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: StatusStateWidget.empty(
+                              title: "No offers yet",
+                              subtitle: "Check back later for exclusive Shuvmarg discounts.",
+                              icon: Icons.local_activity_outlined,
                             ),
                           ),
                         ],
                       )
-                    : coupons.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondary.withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.local_activity_outlined,
-                                    size: 64,
-                                    color: AppColors.secondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                const Text(
-                                  "Oops! No deals hiding here.",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  "Check back later for exclusive Shuvmarg discounts.",
-                                  style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 14,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
+                    : ListView(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          // ── ACTIVE OFFERS ──────────────────────────────
+                          if (active.isNotEmpty) ...[
+                            _SectionHeader(
+                              label: 'Active Offers',
+                              count: active.length,
+                              color: AppTheme.accentLime,
                             ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.all(12),
-                            itemCount: coupons.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final coupon = coupons[index];
-                              return CouponOfferCard(
-                                coupon: coupon,
-                              );
-                            },
-                          ),
-          );
-        },
+                            ...active.map((c) => CouponOfferCard(coupon: c)),
+                            const SizedBox(height: 8),
+                          ],
+
+                          // ── EXPIRED OFFERS ─────────────────────────────
+                          if (expired.isNotEmpty) ...[
+                            _SectionHeader(
+                              label: 'Expired Offers',
+                              count: expired.length,
+                              color: AppTheme.textSecondary,
+                            ),
+                            ...expired.map((c) => CouponOfferCard(coupon: c)),
+                          ],
+
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+  const _SectionHeader(
+      {required this.label, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4, left: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 16,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+              fontFamily: AppTheme.fontFamily,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                fontFamily: AppTheme.fontFamily,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

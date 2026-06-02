@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:sumarg/controllers/coupon_controller/coupon_controller.dart';
 import 'package:sumarg/models/get_coupn_respnse_model.dart' as list_model;
@@ -6,6 +7,7 @@ import 'package:sumarg/models/coupon_response_model.dart';
 
 class CouponProvider extends ChangeNotifier {
   final CouponController _couponController;
+  Timer? _refreshTimer;
 
   CouponProvider({CouponController? couponController})
       : _couponController = couponController ?? CouponController();
@@ -24,11 +26,44 @@ class CouponProvider extends ChangeNotifier {
   String get couponError => _couponError;
   String get rewardError => _rewardError;
 
-  Future<void> fetchCoupons({bool forceRefresh = false}) async {
-    // If not a force refresh and we already have data, skip fetching.
-    if (_coupons.isNotEmpty && !forceRefresh) return;
+  /// Start polling for new/expired offers every [intervalMinutes] minutes.
+  /// Safe to call multiple times — cancels the previous timer first.
+  void startAutoRefresh({int intervalMinutes = 5}) {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(
+      Duration(minutes: intervalMinutes),
+      (_) => _silentRefresh(),
+    );
+  }
 
-    // Only show the loading state if we have no data yet.
+  void stopAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Silently refreshes coupons without showing a loading spinner.
+  Future<void> _silentRefresh() async {
+    try {
+      final res = await _couponController.getAllCoupons();
+      if (res.success) {
+        _coupons = res.data;
+        _couponError = '';
+        notifyListeners();
+      }
+    } catch (_) {
+      // Swallow errors on background refresh — don't show error UI
+    }
+  }
+
+  Future<void> fetchCoupons({bool forceRefresh = false}) async {
+    // Only show the loading spinner on the very first load (no data yet).
+    // Always hit the network — never serve stale cache.
     if (_coupons.isEmpty) {
       _isLoadingCoupons = true;
       _couponError = '';
@@ -48,12 +83,8 @@ class CouponProvider extends ChangeNotifier {
     } finally {
       if (_isLoadingCoupons) {
         _isLoadingCoupons = false;
-        notifyListeners();
-      } else if (forceRefresh) {
-        // If it was a force refresh but we didn't show the initial loader,
-        // we still need to notify listeners that the data has been updated.
-        notifyListeners();
       }
+      notifyListeners();
     }
   }
 

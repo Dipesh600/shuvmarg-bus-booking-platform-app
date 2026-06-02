@@ -8,6 +8,9 @@ import 'package:sumarg/controllers/auth_controller/login_provider.dart';
 import 'package:sumarg/views/booking/seats_screen.dart';
 import 'package:sumarg/views/auth/login_screen.dart';
 import 'package:sumarg/utils/navigation_service.dart';
+import 'package:sumarg/utils/app_theme.dart';
+import 'package:sumarg/widgets/glass_card.dart';
+import 'package:sumarg/widgets/loading_neon_bus.dart';
 
 class AvailableBussesScreen extends StatefulWidget {
   const AvailableBussesScreen({super.key});
@@ -42,12 +45,22 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
 
   void _generateAvailableDates() {
     final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    final selectedStart = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    
+    DateTime startDate = todayStart;
+    final diff = selectedStart.difference(todayStart).inDays;
+    
+    if (diff < 0) {
+      startDate = todayStart;
+    } else if (diff >= 7) {
+      startDate = selectedStart.subtract(const Duration(days: 2));
+      if (startDate.isBefore(todayStart)) startDate = todayStart;
+    }
 
-    // Generate dates from today onwards (7 days)
     _availableDates = [];
     for (int i = 0; i < 7; i++) {
-      final date = today.add(Duration(days: i));
-      _availableDates.add(date);
+      _availableDates.add(startDate.add(Duration(days: i)));
     }
   }
 
@@ -76,7 +89,10 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
     };
     debugPrint('Search POST data: $searchData');
 
-    _searchFuture = ticketProvider.searchTicket(searchData);
+    _searchFuture = Future.wait([
+      ticketProvider.searchTicket(searchData),
+      Future.delayed(const Duration(milliseconds: 600)),
+    ]).then((results) => results.first as TripResponse);
     _searchFuture.then((_) {
       if (!mounted) return;
       setState(() {
@@ -94,6 +110,7 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
   void _onDateSelected(DateTime date) {
     setState(() {
       _selectedDate = date;
+      _generateAvailableDates();
     });
     _performSearch(); // Search for buses on selected date
   }
@@ -119,27 +136,43 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
     }
   }
 
+  String _getShortMonth(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
+  }
+
   Future<void> _showDatePicker() async {
     final today = DateTime.now();
-    final todayStart =
-        DateTime(today.year, today.month, today.day); // Start of today
-    final lastDate = todayStart.add(const Duration(days: 6));
-    final initialPickerDate =
-        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final todayStart = DateTime(today.year, today.month, today.day); // Start of today
+    final initialPickerDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
 
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: initialPickerDate,
-      firstDate: todayStart, // Disable all dates before today
-      lastDate: lastDate, // Allow only up to 7 days including today
+      firstDate: todayStart,
+      lastDate: DateTime(today.year + 1, today.month, today.day),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-              onSurfaceVariant: Colors.grey[400], // Disabled dates color
+            colorScheme: const ColorScheme.dark(
+              primary: AppTheme.accentLime,
+              onPrimary: AppTheme.primaryDarkest,
+              surface: AppTheme.primaryDarker,
+              onSurface: AppTheme.textPrimary,
+              onSurfaceVariant: AppTheme.textSecondary,
+            ),
+            dialogTheme: DialogThemeData(
+              backgroundColor: AppTheme.primaryDarker,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: const BorderSide(color: AppTheme.stroke, width: 1),
+              ),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.accentLime,
+                textStyle: const TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
           ),
           child: child!,
@@ -149,14 +182,10 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
 
     if (picked != null && picked != _selectedDate) {
       _onDateSelected(picked);
-      // Scroll to selected date in horizontal list if it's within the 10-day range
       final today = DateTime.now();
       final daysDifference = picked.difference(today).inDays;
       if (daysDifference >= 0 && daysDifference < 10) {
-        // The date is within our 10-day range, so it will be visible in the horizontal list
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          // Optional: Add scroll animation to the selected date
-        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {});
       }
     }
   }
@@ -211,180 +240,221 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
+        return StatefulBuilder(builder: (context, setSheetState) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF00231E),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
+            padding: EdgeInsets.fromLTRB(
+                24, 0, 24, MediaQuery.of(context).viewInsets.bottom + 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    'Filter & Sort',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                // Handle
+                Center(
+                  child: Container(
+                    width: 36, height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0x1AFFFFFF),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
-                const Divider(),
-                // Price Range Section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Price Range',
+                // Title row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Filter & Sort',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                            color: Color(0xFFF5F7F6),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700)),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedFilter = 'None';
+                          _priceRange = const RangeValues(500, 2000);
+                          _minPriceController.text = '500';
+                          _maxPriceController.text = '2000';
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD3D925).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFD3D925).withOpacity(0.4)),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      RangeSlider(
-                        values: _priceRange,
-                        min: 500,
-                        max: 2000,
-                        divisions: 15,
-                        labels: RangeLabels(
-                          'Rs. ${_priceRange.start.round()}',
-                          'Rs. ${_priceRange.end.round()}',
-                        ),
-                        onChanged: (RangeValues values) {
-                          setState(() {
-                            _priceRange = values;
-                            _minPriceController.text =
-                                values.start.round().toString();
-                            _maxPriceController.text =
-                                values.end.round().toString();
-                          });
-                        },
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _minPriceController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Min Price',
-                                prefixText: 'Rs. ',
-                                border: OutlineInputBorder(),
-                              ),
-                              onChanged: (value) {
-                                final minPrice = int.tryParse(value) ?? 500;
-                                setState(() {
-                                  _priceRange = RangeValues(
-                                    minPrice.toDouble(),
-                                    _priceRange.end,
-                                  );
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: TextField(
-                              controller: _maxPriceController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Max Price',
-                                prefixText: 'Rs. ',
-                                border: OutlineInputBorder(),
-                              ),
-                              onChanged: (value) {
-                                final maxPrice = int.tryParse(value) ?? 2000;
-                                setState(() {
-                                  _priceRange = RangeValues(
-                                    _priceRange.start,
-                                    maxPrice.toDouble(),
-                                  );
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(),
-                // Sort Options Section
-                const Padding(
-                  padding: EdgeInsets.only(left: 16.0, top: 8.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Sort By',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        child: const Text('Reset',
+                            style: TextStyle(color: Color(0xFFD3D925), fontSize: 12, fontWeight: FontWeight.w600)),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // ── Price Range ──────────────────────────────────────────
+                const Text('Price Range',
+                    style: TextStyle(
+                        color: Color(0xFFB7C7C3),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5)),
+                const SizedBox(height: 8),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: const Color(0xFFD3D925),
+                    inactiveTrackColor: const Color(0xFF00564E),
+                    thumbColor: const Color(0xFFD3D925),
+                    overlayColor: const Color(0xFFD3D925).withOpacity(0.15),
+                    valueIndicatorColor: const Color(0xFF003D38),
+                    valueIndicatorTextStyle: const TextStyle(color: Color(0xFFD3D925)),
+                    trackHeight: 3,
+                  ),
+                  child: RangeSlider(
+                    values: _priceRange,
+                    min: 500,
+                    max: 2000,
+                    divisions: 15,
+                    labels: RangeLabels(
+                      'Rs. ${_priceRange.start.round()}',
+                      'Rs. ${_priceRange.end.round()}',
+                    ),
+                    onChanged: (values) {
+                      setSheetState(() => _priceRange = values);
+                      setState(() {
+                        _priceRange = values;
+                        _minPriceController.text = values.start.round().toString();
+                        _maxPriceController.text = values.end.round().toString();
+                      });
+                    },
                   ),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.sort),
-                  title: const Text('Price: Low to High'),
-                  onTap: () {
-                    setState(() {
-                      _selectedFilter = 'Price: Low to High';
-                    });
-                    Navigator.pop(context);
-                  },
+                // Min/Max inputs
+                Row(
+                  children: [
+                    Expanded(child: _darkTextField(
+                      controller: _minPriceController,
+                      label: 'Min',
+                      onChanged: (v) {
+                        final n = int.tryParse(v) ?? 500;
+                        setSheetState(() => _priceRange = RangeValues(n.toDouble(), _priceRange.end));
+                        setState(() => _priceRange = RangeValues(n.toDouble(), _priceRange.end));
+                      },
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: _darkTextField(
+                      controller: _maxPriceController,
+                      label: 'Max',
+                      onChanged: (v) {
+                        final n = int.tryParse(v) ?? 2000;
+                        setSheetState(() => _priceRange = RangeValues(_priceRange.start, n.toDouble()));
+                        setState(() => _priceRange = RangeValues(_priceRange.start, n.toDouble()));
+                      },
+                    )),
+                  ],
                 ),
-                ListTile(
-                  leading: const Icon(Icons.sort),
-                  title: const Text('Price: High to Low'),
-                  onTap: () {
-                    setState(() {
-                      _selectedFilter = 'Price: High to Low';
-                    });
-                    Navigator.pop(context);
-                  },
+                const SizedBox(height: 20),
+
+                // ── Sort By ──────────────────────────────────────────────
+                const Text('Sort By',
+                    style: TextStyle(
+                        color: Color(0xFFB7C7C3),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _sortChip('Price: Low to High', Icons.arrow_upward_rounded, setSheetState),
+                    _sortChip('Price: High to Low', Icons.arrow_downward_rounded, setSheetState),
+                    _sortChip('Departure Time', Icons.schedule_rounded, setSheetState),
+                    _sortChip('Duration', Icons.timer_outlined, setSheetState),
+                  ],
                 ),
-                ListTile(
-                  leading: const Icon(Icons.access_time),
-                  title: const Text('Departure Time'),
-                  onTap: () {
-                    setState(() {
-                      _selectedFilter = 'Departure Time';
-                    });
-                    Navigator.pop(context);
-                  },
+                const SizedBox(height: 20),
+
+                // Apply button
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD3D925),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [BoxShadow(color: const Color(0xFFD3D925).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+                    ),
+                    child: const Text('Apply Filters',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Color(0xFF003D38), fontSize: 15, fontWeight: FontWeight.w700)),
+                  ),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.timer),
-                  title: const Text('Duration'),
-                  onTap: () {
-                    setState(() {
-                      _selectedFilter = 'Duration';
-                    });
-                    Navigator.pop(context);
-                  },
-                ),
-                const SizedBox(height: 16),
               ],
             ),
-          ),
-        );
+          );
+        });
       },
+    );
+  }
+
+  Widget _darkTextField({
+    required TextEditingController controller,
+    required String label,
+    required ValueChanged<String> onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      style: const TextStyle(color: Color(0xFFF5F7F6), fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixText: 'Rs. ',
+        prefixStyle: const TextStyle(color: Color(0xFFB7C7C3), fontSize: 13),
+        labelStyle: const TextStyle(color: Color(0xFFB7C7C3), fontSize: 13),
+        filled: true,
+        fillColor: const Color(0xFF00564E).withOpacity(0.15),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: const Color(0xFF00564E).withOpacity(0.4))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: const Color(0xFF00564E).withOpacity(0.4))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFD3D925), width: 1.5)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _sortChip(String label, IconData icon, StateSetter setSheetState) {
+    final isActive = _selectedFilter == label;
+    return GestureDetector(
+      onTap: () {
+        setSheetState(() {});
+        setState(() => _selectedFilter = isActive ? 'None' : label);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFD3D925).withOpacity(0.15) : const Color(0xFF00564E).withOpacity(0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isActive ? const Color(0xFFD3D925).withOpacity(0.6) : const Color(0x0DFFFFFF), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: isActive ? const Color(0xFFD3D925) : const Color(0xFFB7C7C3)),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(color: isActive ? const Color(0xFFD3D925) : const Color(0xFFF5F7F6), fontSize: 12, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -419,333 +489,474 @@ class _AvailableBussesScreenState extends State<AvailableBussesScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Available Buses",
-          style: TextStyle(color: AppColors.white),
-        ),
-        backgroundColor: AppColors.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _performSearch,
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
+      backgroundColor: AppTheme.primaryDark,
+      body: SafeArea(
+        bottom: false,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Date picker section
-            Container(
-              height: 98,
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            GestureDetector(
-                              onTap: _showDatePicker,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_month,
-                                      size: 16,
-                                      color: AppColors.primary,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Pick Date',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Text(
-                              'Today & Future Only',
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Colors.grey[600],
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Expanded(
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      itemCount: _availableDates.length,
-                      itemBuilder: (context, index) {
-                        final date = _availableDates[index];
-                        final isSelected = date.day == _selectedDate.day &&
-                            date.month == _selectedDate.month &&
-                            date.year == _selectedDate.year;
-                        final isToday = date.day == DateTime.now().day &&
-                            date.month == DateTime.now().month &&
-                            date.year == DateTime.now().year;
-
-                        return GestureDetector(
-                          onTap: () => _onDateSelected(date),
-                          child: Container(
-                            width: 55,
-                            height: 50,
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : isToday
-                                      ? AppColors.primary.withValues(alpha: 0.1)
-                                      : Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : isToday
-                                        ? AppColors.primary
-                                        : Colors.grey.shade300,
-                                width: isSelected || isToday ? 2 : 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withValues(alpha: 0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '${date.day}',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : isToday
-                                            ? AppColors.primary
-                                            : Colors.black87,
-                                  ),
-                                ),
-                                Text(
-                                  _getDayName(date.weekday),
-                                  style: TextStyle(
-                                    fontSize: 8,
-                                    color: isSelected
-                                        ? Colors.white70
-                                        : isToday
-                                            ? AppColors.primary
-                                            : Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Filter section
+            // Ultra-Compact Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _showFilterOptions,
-                    icon: const Icon(Icons.filter_list),
-                    label: const Text('Filter'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1A3C5A),
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  RichText(
+                    text: const TextSpan(
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
                       ),
+                      children: [
+                        TextSpan(text: 'Available '),
+                        TextSpan(
+                          text: 'Buses',
+                          style: TextStyle(color: AppTheme.accentLime),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  if (_selectedFilter != 'None' ||
-                      _priceRange != const RangeValues(500, 2000))
-                    Expanded(
-                      child: Text(
-                        'Filtered: ${_selectedFilter != 'None' ? _selectedFilter : ''}${_selectedFilter != 'None' && _priceRange != const RangeValues(500, 2000) ? ', ' : ''}${_priceRange != const RangeValues(500, 2000) ? 'Rs. ${_priceRange.start.round()} - Rs. ${_priceRange.end.round()}' : ''}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: AppTheme.accentLime),
+                    onPressed: _performSearch,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            // Bus list
+
+            // Compact Date Picker Row
+            _buildCompactDatePicker(),
+            const SizedBox(height: 16),
+
+            // Compact Filter Row
+            _buildFilterRow(),
+            const SizedBox(height: 12),
+
+            // Main Content Area
             Expanded(
-              child: FutureBuilder<TripResponse>(
-                future: _searchFuture,
-                builder: (context, snapshot) {
-                  if (_isLoading) {
-                    return const Center(
+              child: _buildBodyContent(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBodyContent() {
+    return FutureBuilder<TripResponse>(
+      future: _searchFuture,
+      builder: (context, snapshot) {
+        Widget child;
+        if (_isLoading) {
+          child = const LoadingNeonBus(key: ValueKey('loading'), isLoading: true);
+        } else if (snapshot.hasError) {
+          child = _buildErrorState(snapshot.error.toString());
+        } else if (snapshot.hasData) {
+          final response = snapshot.data!;
+          if (response.success && response.data.isNotEmpty) {
+            final filteredBuses = _applyFilter(response.data);
+            if (filteredBuses.isEmpty) {
+              child = _buildEmptyState("No buses match your filter criteria.");
+            } else {
+              child = BusListCommon(
+                key: const ValueKey('content'),
+                busList: filteredBuses,
+                onBusTap: _handleBusTap,
+              );
+            }
+          } else {
+            child = _buildEmptyState(
+              response.message.isNotEmpty
+                  ? response.message
+                  : "No buses available for ${_selectedDate.day}/${_selectedDate.month}",
+            );
+          }
+        } else {
+          child = _buildEmptyState("No buses found");
+        }
+
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: child,
+        );
+      },
+    );
+  }
+
+  Widget _buildCompactDatePicker() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          // Pick Date Button
+          GestureDetector(
+            onTap: _showDatePicker,
+            child: Container(
+              height: 85,
+              width: 58,
+              decoration: BoxDecoration(
+                color: AppTheme.cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.stroke, width: 1),
+              ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.calendar_month_rounded,
+                    size: 24,
+                    color: AppTheme.accentLime,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'More',
+                    style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textSecondary,
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Scrollable Dates
+          Expanded(
+            child: SizedBox(
+              height: 85,
+              child: ShaderMask(
+                shaderCallback: (Rect bounds) {
+                  return const LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.transparent,
+                      Colors.white,
+                      Colors.white,
+                      Colors.transparent
+                    ],
+                    stops: [0.0, 0.08, 0.92, 1.0],
+                  ).createShader(bounds);
+                },
+                blendMode: BlendMode.dstIn,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                itemCount: _availableDates.length,
+                itemBuilder: (context, index) {
+                  final date = _availableDates[index];
+                  final isSelected = date.day == _selectedDate.day &&
+                      date.month == _selectedDate.month &&
+                      date.year == _selectedDate.year;
+
+                  return GestureDetector(
+                    onTap: () => _onDateSelected(date),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 58,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected ? AppTheme.accentLime : AppTheme.cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.transparent
+                              : AppTheme.stroke,
+                          width: isSelected ? 0 : 1,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: AppTheme.accentLime.withOpacity(0.25),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                )
+                              ]
+                            : null,
+                      ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.primary),
-                          ),
-                          SizedBox(height: 16),
                           Text(
-                            "Searching for buses...",
+                            _getDayName(date.weekday),
                             style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? AppTheme.primaryDarkest
+                                  : AppTheme.textSecondary,
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 2),
                           Text(
-                            "Error loading buses: ${snapshot.error}",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.red,
+                            '${date.day}',
+                            style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: isSelected
+                                  ? AppTheme.primaryDarkest
+                                  : AppTheme.textPrimary,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _performSearch,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
+                          Text(
+                            _getShortMonth(date.month),
+                            style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? AppTheme.primaryDarkest.withOpacity(0.8)
+                                  : AppTheme.textSecondary,
                             ),
-                            child: const Text("Retry"),
                           ),
                         ],
                       ),
-                    );
-                  }
-
-                  if (snapshot.hasData) {
-                    final response = snapshot.data!;
-                    if (response.success && response.data.isNotEmpty) {
-                      final filteredBuses = _applyFilter(response.data);
-                      return BusListCommon(
-                        busList: filteredBuses,
-                        onBusTap: _handleBusTap,
-                      );
-                    } else {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              response.message.isNotEmpty
-                                  ? response.message
-                                  : "No buses available for ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _performSearch,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                              ),
-                              child: const Text(
-                                "Search Again",
-                                style: TextStyle(color: AppColors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                  }
-
-                  // Default state when no data
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          "No buses found",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
                     ),
                   );
                 },
               ),
+              ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GestureDetector(
+            onTap: _showFilterOptions,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.stroke, width: 1),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.tune_rounded,
+                      size: 16, color: AppTheme.accentLime),
+                  SizedBox(width: 8),
+                  Text(
+                    'Filter',
+                    style: TextStyle(
+                      fontFamily: AppTheme.fontFamily,
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Row(
+              children: [
+                const Text(
+                  'Sort by',
+                  style: TextStyle(
+                    fontFamily: AppTheme.fontFamily,
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryDark,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.stroke, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        _selectedFilter == 'None'
+                            ? 'Departure'
+                            : _selectedFilter.split(':').first,
+                        style: const TextStyle(
+                          fontFamily: AppTheme.fontFamily,
+                          fontSize: 12,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.keyboard_arrow_down_rounded,
+                          size: 14, color: AppTheme.textSecondary),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                LoadingNeonBus(
+                  isLoading: false,
+                  title: "No Buses Found",
+                  subtitle: message,
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  child: GlassCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryDark,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppTheme.stroke),
+                          ),
+                          child: const Icon(Icons.notifications_active_rounded,
+                              color: AppTheme.accentLime),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Get notified for new buses",
+                                style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                "We'll notify you when new buses are available",
+                                style: TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 10,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.accentLime,
+                            foregroundColor: AppTheme.primaryDark,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            "Enable Alerts",
+                            style: TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+  Widget _buildErrorState(String errorMsg) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: GlassCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  size: 48, color: AppTheme.error),
+              const SizedBox(height: 16),
+              const Text(
+                "Connection Error",
+                style: TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                errorMsg,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AppTheme.fontFamily,
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _performSearch,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.error,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text("Try Again"),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

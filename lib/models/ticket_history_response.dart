@@ -33,11 +33,13 @@ class TicketHistoryData {
   final Booking booking;
   final Trip? trip;
   final Payment? payment;
+  final RefundInfo? refund;
 
   TicketHistoryData({
     required this.booking,
     this.trip,
     this.payment,
+    this.refund,
   });
 
   factory TicketHistoryData.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,7 @@ class TicketHistoryData {
       booking: Booking.fromJson(json['booking']),
       trip: json['trip'] != null ? Trip.fromJson(json['trip']) : null,
       payment: json['payment'] != null ? Payment.fromJson(json['payment']) : null,
+      refund: json['refund'] != null ? RefundInfo.fromJson(json['refund']) : null,
     );
   }
 
@@ -53,6 +56,7 @@ class TicketHistoryData {
       'booking': booking.toJson(),
       'trip': trip?.toJson(),
       'payment': payment?.toJson(),
+      'refund': refund?.toJson(),
     };
   }
 }
@@ -261,6 +265,62 @@ class Payment {
       'status': status,
       'totalAmount': totalAmount,
       'paidAt': paidAt,
+    };
+  }
+}
+
+class RefundInfo {
+  final int refundAmount;
+  final int cancellationCharge;
+  final int originalAmount;
+  final String status;
+  final String? requestedAt;
+  final String? processedAt;
+  final String? completedAt;
+  final String? reason;
+  final String? remarks;
+  final String? refundGateway;
+
+  RefundInfo({
+    required this.refundAmount,
+    required this.cancellationCharge,
+    required this.originalAmount,
+    required this.status,
+    this.requestedAt,
+    this.processedAt,
+    this.completedAt,
+    this.reason,
+    this.remarks,
+    this.refundGateway,
+  });
+
+  factory RefundInfo.fromJson(Map<String, dynamic> json) {
+    return RefundInfo(
+      refundAmount: json['refundAmount'] ?? 0,
+      cancellationCharge: json['cancellationCharge'] ?? 0,
+      originalAmount: json['originalAmount'] ?? 0,
+      status: json['status'] ?? 'pending',
+      requestedAt: json['requestedAt'],
+      processedAt: json['processedAt'],
+      completedAt: json['completedAt'],
+      reason: json['reason'],
+      remarks: json['remarks'],
+      refundGateway: json['refundGateway'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'refundAmount': refundAmount,
+      'cancellationCharge': cancellationCharge,
+      'originalAmount': originalAmount,
+      'status': status,
+      'requestedAt': requestedAt,
+      'processedAt': processedAt,
+      'completedAt': completedAt,
+      'reason': reason,
+      'remarks': remarks,
+      'refundGateway': refundGateway,
     };
   }
 }

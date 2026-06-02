@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:sumarg/apis/api_services.dart';
+import 'package:sumarg/models/cancel_estimate_response.dart';
 import 'package:sumarg/models/for_all_response.dart';
 import 'package:sumarg/models/prepare_booking_response.dart';
 import 'package:sumarg/models/ticket_booking_response.dart';
@@ -9,12 +10,13 @@ import 'package:sumarg/models/yatra_points_response.dart';
 import 'package:sumarg/utils/api_endpoints.dart';
 import 'package:sumarg/utils/connectivity_service.dart';
 import 'package:sumarg/utils/local_storage_service.dart';
+import 'package:sumarg/utils/error_handler.dart';
 
 class TicketController {
 // Search ticket
   Future<TripResponse> searchTicket(data) async {
     final ApiService apiService = ApiService();
-    const String searchTicketUrl = ApiEndpoints.searchTicket;
+    final String searchTicketUrl = ApiEndpoints.searchTicket;
     try {
       final response = await apiService.postData(searchTicketUrl, data);
       final searchResponse = TripResponse.fromJson(response);
@@ -51,14 +53,52 @@ class TicketController {
   // Booking Controller
   Future<TicketBookingResponse> bookTicket(data) async {
     final ApiService apiService = ApiService();
-    const String bookingUrl = ApiEndpoints.bookTicket;
+    final String bookingUrl = ApiEndpoints.bookTicket;
     try {
       final response = await apiService.postDataWithToken(bookingUrl, data);
       final searchResponse = TicketBookingResponse.fromJson(response);
       return searchResponse;
+    } on DioException catch (e) {
+      String? caseId;
+      try {
+        if (e.response?.data != null && e.response!.data is Map) {
+          caseId = e.response!.data['caseId'];
+        }
+      } catch (_) {}
+      return TicketBookingResponse(
+          status: false,
+          message: ErrorHandler.clean(e),
+          ticketId: "",
+          caseId: caseId);
     } catch (error) {
       return TicketBookingResponse(
-          status: false, message: 'Faild to Book Ticket: $error', ticketId: "");
+          status: false, message: ErrorHandler.clean(error), ticketId: "");
+    }
+  }
+
+  // Confirm Booking - Atomic seat lock and payment verification
+  Future<TicketBookingResponse> confirmBooking(data) async {
+    final ApiService apiService = ApiService();
+    final String confirmUrl = ApiEndpoints.confirmBooking;
+    try {
+      final response = await apiService.postDataWithToken(confirmUrl, data);
+      final searchResponse = TicketBookingResponse.fromJson(response);
+      return searchResponse;
+    } on DioException catch (e) {
+      String? caseId;
+      try {
+        if (e.response?.data != null && e.response!.data is Map) {
+          caseId = e.response!.data['caseId'];
+        }
+      } catch (_) {}
+      return TicketBookingResponse(
+          status: false,
+          message: ErrorHandler.clean(e),
+          ticketId: "",
+          caseId: caseId);
+    } catch (error) {
+      return TicketBookingResponse(
+          status: false, message: ErrorHandler.clean(error), ticketId: "");
     }
   }
 
@@ -72,7 +112,7 @@ class TicketController {
   /// the subsequent confirmBooking call.
   Future<PrepareBookingResponse> prepareBooking(Map<String, dynamic> data) async {
     final ApiService apiService = ApiService();
-    const String url = ApiEndpoints.prepareBooking;
+    final String url = ApiEndpoints.prepareBooking;
     try {
       final response = await apiService.postDataWithToken(url, data);
       return PrepareBookingResponse.fromJson(
@@ -80,7 +120,7 @@ class TicketController {
     } catch (error) {
       return PrepareBookingResponse(
         status:  false,
-        message: 'Failed to prepare booking: $error',
+        message: ErrorHandler.clean(error),
       );
     }
   }
@@ -94,7 +134,7 @@ class TicketController {
       // Try to fetch from API
       try {
         final ApiService apiService = ApiService();
-        const String bookHistoryUrl = ApiEndpoints.bookingHistory;
+        final String bookHistoryUrl = ApiEndpoints.bookingHistory;
 
         final response = await apiService.getDataWithToken(bookHistoryUrl);
         final searchResponse = TicketHistoryResponse.fromJson(response);
@@ -131,7 +171,7 @@ class TicketController {
       if (hasInternet) {
         // Try to fetch from API
         final ApiService apiService = ApiService();
-        const String bookHistoryUrl = ApiEndpoints.bookingHistory;
+        final String bookHistoryUrl = ApiEndpoints.bookingHistory;
 
         final response = await apiService.getDataWithToken(bookHistoryUrl);
         final searchResponse = TicketHistoryResponse.fromJson(response);
@@ -176,7 +216,7 @@ class TicketController {
 // Validate yatra points
   Future<YatraPointsResponse> validateYatraPoints(data) async {
     final ApiService apiService = ApiService();
-    const String validateYatraPointsUrl = ApiEndpoints.validateYatraPoints;
+    final String validateYatraPointsUrl = ApiEndpoints.validateYatraPoints;
     try {
       final response =
           await apiService.postDataWithToken(validateYatraPointsUrl, data);
@@ -192,15 +232,51 @@ class TicketController {
   // Cancel ticket
   Future<ForAllResponse> cancelTicket(data) async {
     final ApiService apiService = ApiService();
-    const String cancelTicketUrl = ApiEndpoints.cancelticket;
+    final String cancelTicketUrl = ApiEndpoints.cancelticket;
     try {
       final response =
           await apiService.postDataWithToken(cancelTicketUrl, data);
-      final validateYatraPointsResponse = ForAllResponse.fromJson(response);
-      return validateYatraPointsResponse;
+      final cancelResponse = ForAllResponse.fromJson(response);
+      return cancelResponse;
+    } on DioException catch (e) {
+      // Extract server message if available
+      String errorMessage = 'Failed to cancel ticket. Please try again.';
+      if (e.response?.data != null && e.response!.data is Map) {
+        final serverMsg = e.response!.data['message'];
+        if (serverMsg != null && serverMsg.toString().isNotEmpty) {
+          errorMessage = serverMsg.toString();
+        }
+      } else if (e.message != null && e.message!.isNotEmpty) {
+        errorMessage = e.message!;
+      }
+      return ForAllResponse(status: false, message: errorMessage);
     } catch (error) {
       return ForAllResponse(
-          status: false, message: 'Failed to cancel ticket: $error');
+          status: false, message: 'Failed to cancel ticket. Please try again.');
+    }
+  }
+
+  // Get cancel estimate (refund breakdown preview)
+  Future<CancelEstimateResponse> getCancelEstimate(Map<String, dynamic> data) async {
+    final ApiService apiService = ApiService();
+    final String url = ApiEndpoints.cancelEstimate;
+    try {
+      final response = await apiService.postDataWithToken(url, data);
+      return CancelEstimateResponse.fromJson(response);
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to get refund estimate.';
+      if (e.response?.data != null && e.response!.data is Map) {
+        final serverMsg = e.response!.data['message'];
+        if (serverMsg != null && serverMsg.toString().isNotEmpty) {
+          errorMessage = serverMsg.toString();
+        }
+      } else if (e.message != null && e.message!.isNotEmpty) {
+        errorMessage = e.message!;
+      }
+      return CancelEstimateResponse(status: false, message: errorMessage);
+    } catch (error) {
+      return CancelEstimateResponse(
+          status: false, message: 'Failed to get refund estimate.');
     }
   }
 }

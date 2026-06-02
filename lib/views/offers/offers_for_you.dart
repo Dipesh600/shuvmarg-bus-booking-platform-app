@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import '../../utils/color_constants.dart';
+import 'package:sumarg/utils/app_theme.dart';
 import 'package:sumarg/views/widgets/coupon_offer_card.dart';
 import 'package:sumarg/views/offers/all_offers_page.dart';
+import 'package:sumarg/views/widgets/status_state_widget.dart';
 import 'package:provider/provider.dart';
 import '../../providers/coupon_provider.dart';
 
@@ -38,13 +39,14 @@ class _OffersForYouState extends State<OffersForYou> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: const Text(
+                  const Expanded(
+                    child: Text(
                       "Exclusive Offers",
                       style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: AppTheme.textPrimary,
+                        fontFamily: AppTheme.fontFamily,
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -63,8 +65,9 @@ class _OffersForYouState extends State<OffersForYou> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: Colors.white70,
+                        color: AppTheme.accentLime,
                         letterSpacing: 1.0,
+                        fontFamily: AppTheme.fontFamily,
                       ),
                     ),
                   ),
@@ -77,73 +80,30 @@ class _OffersForYouState extends State<OffersForYou> {
             if (loading)
               const Center(child: Padding(
                 padding: EdgeInsets.all(20.0),
-                child: CircularProgressIndicator(color: AppColors.secondary),
+                child: CircularProgressIndicator(color: AppTheme.accentLime),
               )),
-            if (!loading && error.isNotEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Text(
-                    error,
-                    style: const TextStyle(color: Colors.redAccent),
-                  ),
+            if (!loading && error.isNotEmpty && !error.toLowerCase().contains("no coupons"))
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: StatusStateWidget.error(
+                  rawError: error,
+                  onRetry: () => Provider.of<CouponProvider>(context, listen: false).fetchCoupons(),
                 ),
               ),
-            if (!loading && error.isEmpty && coupons.isEmpty)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryDarker.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.local_activity_outlined,
-                        color: AppColors.secondary,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "No deals right now",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            "Check back later for exclusive Shuvmarg discounts.",
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
+            if (!loading && (coupons.isEmpty || error.toLowerCase().contains("no coupons")))
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                child: StatusStateWidget.empty(
+                  title: "No deals right now",
+                  subtitle: "Check back later for exclusive Shuvmarg discounts.",
+                  icon: Icons.local_activity_outlined,
                 ),
               ),
 
             if (!loading && error.isEmpty && coupons.isNotEmpty)
               CarouselSlider(
                 options: CarouselOptions(
-                  height: 220,
+                  height: 240,
                   enlargeCenterPage: true,
                   autoPlay: true,
                   autoPlayInterval: const Duration(seconds: 4),

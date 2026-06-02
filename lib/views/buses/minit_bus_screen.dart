@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sumarg/utils/color_constants.dart';
+import 'package:sumarg/utils/app_theme.dart';
+import 'package:sumarg/widgets/glass_card.dart';
 
 class MiniBusScreen extends StatelessWidget {
   const MiniBusScreen({super.key});
@@ -7,41 +8,54 @@ class MiniBusScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40.0),
-      child: Center(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 32.0),
+      child: GlassCard(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 100,
-              height: 100,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.1),
+                color: AppTheme.accentLime.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.25)),
               ),
               child: const Icon(
-                Icons.airport_shuttle,
-                size: 50,
-                color: AppColors.secondary,
+                Icons.airport_shuttle_outlined,
+                size: 38,
+                color: AppTheme.accentLime,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             const Text(
               "Mini Bus",
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+                fontFamily: AppTheme.fontFamily,
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              "Coming Soon",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.secondary,
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.accentLime.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                "COMING SOON",
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.accentLime,
+                  letterSpacing: 1.5,
+                  fontFamily: AppTheme.fontFamily,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -50,8 +64,9 @@ class MiniBusScreen extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white60,
-                height: 1.5,
+                color: AppTheme.textSecondary,
+                height: 1.6,
+                fontFamily: AppTheme.fontFamily,
               ),
             ),
           ],

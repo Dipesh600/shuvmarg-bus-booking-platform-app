@@ -129,7 +129,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   Future<void> storeDeviceinfo(data) async {
     final ApiService apiService = ApiService();
-    const String storeurl = ApiEndpoints.storedeviceinfo;
+    final String storeurl = ApiEndpoints.storedeviceinfo;
     try {
       await apiService.postDataWithToken(storeurl, data, context: context);
     } catch (e) {

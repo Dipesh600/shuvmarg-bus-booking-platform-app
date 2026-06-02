@@ -36,7 +36,7 @@ class _RunningStatusScreenState extends State<RunningStatusScreen>
         elevation: 0,
         leading: IconButton(
           icon:
-              const Icon(Icons.arrow_back, color: AppColors.primary),
+              const Icon(Icons.chevron_left_rounded, color: AppColors.primary, size: 28),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(

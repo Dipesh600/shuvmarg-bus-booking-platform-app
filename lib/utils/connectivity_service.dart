@@ -41,15 +41,9 @@ class ConnectivityService {
       final result = await _connectivity.checkConnectivity();
       _isConnected = result != ConnectivityResult.none;
 
-      // Additional check with actual internet connection
+      // Relaxed strict DNS check for local testing via hotspot
       if (_isConnected) {
-        try {
-          final result = await InternetAddress.lookup('google.com');
-          _isConnected =
-              result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-        } on SocketException catch (_) {
-          _isConnected = false;
-        }
+        // Rely on API exceptions for actual reachability instead of google.com
       }
 
       return _isConnected;

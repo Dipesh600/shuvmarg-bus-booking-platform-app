@@ -15,13 +15,47 @@ class ApiService {
     _dio.options.receiveTimeout = const Duration(seconds: 15);
     
     _dio.interceptors.add(InterceptorsWrapper(
-      onError: (DioException e, handler) {
+      onError: (DioException e, handler) async {
         String friendlyMessage = "Network error. Please check your connection.";
-        if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+        
+        // 1. Try to extract the specific error message from the server response (e.g., 400 Bad Request)
+        if (e.response != null && e.response!.data is Map) {
+          final serverMsg = e.response!.data['message'] ?? e.response!.data['statusMessage'];
+          if (serverMsg != null && serverMsg.toString().isNotEmpty) {
+            friendlyMessage = serverMsg.toString();
+          }
+        } 
+        
+        // ── 401 — Attempt silent refresh before logging out ──
+        if (e.response != null && e.response!.statusCode == 401) {
+          // Try to silently refresh the access token
+          final refreshed = await TokenHandler.attemptSilentRefresh();
+
+          if (refreshed) {
+            // Refresh succeeded — retry the original request with the new token
+            try {
+              final retryResponse = await _retryRequest(e.requestOptions);
+              return handler.resolve(retryResponse);
+            } catch (retryError) {
+              // Retry failed — fall through to normal error handling
+            }
+          }
+
+          // Refresh failed — force logout
+          if (TokenHandler.isTokenExpiredFromStatusCode(
+              e.response!.statusCode ?? 401, e.response!.data.toString())) {
+            await TokenHandler.handleTokenExpiration();
+            friendlyMessage = "Session expired. Please login again.";
+          }
+        }
+        // 2. Handle specific connection-level failures
+        else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
           friendlyMessage = "Connection timed out. Your internet might be slow.";
         } else if (e.type == DioExceptionType.connectionError) {
           friendlyMessage = "No internet connection. Please reconnect.";
-        } else if (e.response != null && e.response!.statusCode! >= 500) {
+        } 
+        // 3. Handle 500-level routing/server crashes
+        else if (e.response != null && e.response!.statusCode! >= 500) {
           friendlyMessage = "Server routing error. Please try again later.";
         }
 
@@ -47,6 +81,19 @@ class ApiService {
         error: true,
       ));
     }
+  }
+
+  /// Retry a failed request with the freshly refreshed access token.
+  Future<Response> _retryRequest(RequestOptions requestOptions) async {
+    final prefs = await SharedPreferences.getInstance();
+    final newToken = prefs.getString('accessToken');
+
+    // Update the Authorization header with the new token
+    if (newToken != null && newToken.isNotEmpty) {
+      requestOptions.headers['Authorization'] = 'Bearer $newToken';
+    }
+
+    return _dio.fetch(requestOptions);
   }
 
   // Post Data
@@ -106,13 +153,6 @@ class ApiService {
         print("Response status: ${response.data}");
       }
 
-      // Check for token expiration
-      if (TokenHandler.isTokenExpiredFromStatusCode(
-          response.statusCode ?? 0, response.data.toString())) {
-        await TokenHandler.handleTokenExpiration(context);
-        throw Exception("Token expired. Please login again.");
-      }
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         return response.data;
       } else {
@@ -142,13 +182,6 @@ class ApiService {
         options: Options(headers: requestHeader),
       );
 
-      // Check for token expiration
-      if (TokenHandler.isTokenExpiredFromStatusCode(
-          response.statusCode ?? 0, response.data.toString())) {
-        await TokenHandler.handleTokenExpiration(context);
-        throw Exception("Token expired. Please login again.");
-      }
-
       if (response.statusCode == 200) {
         return response.data;
       } else {
@@ -166,13 +199,6 @@ class ApiService {
       final response = await _dio.get(
         endpoint,
       );
-      // Check for token expiration
-      if (TokenHandler.isTokenExpiredFromStatusCode(
-          response.statusCode ?? 0, response.data.toString())) {
-        await TokenHandler.handleTokenExpiration(context);
-        throw Exception("Token expired. Please login again.");
-      }
-
       if (response.statusCode == 200) {
         return response.data;
       } else {
@@ -212,13 +238,6 @@ class ApiService {
         print("markasread ${response.statusCode}");
       }
 
-      // Check for token expiration
-      if (TokenHandler.isTokenExpiredFromStatusCode(
-          response.statusCode ?? 0, response.data.toString())) {
-        await TokenHandler.handleTokenExpiration(context);
-        throw Exception("Token expired. Please login again.");
-      }
-
       if (response.statusCode == 200) {
         return response.data;
       } else {
@@ -252,13 +271,6 @@ class ApiService {
       );
       if (kDebugMode) {
         print("Response status: ${response.data}");
-      }
-
-      // Check for token expiration
-      if (TokenHandler.isTokenExpiredFromStatusCode(
-          response.statusCode ?? 0, response.data.toString())) {
-        await TokenHandler.handleTokenExpiration(context);
-        throw Exception("Token expired. Please login again.");
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -361,13 +373,6 @@ class ApiService {
         print("Multipart response body: ${response.data}");
       }
 
-      // Check for token expiration
-      if (TokenHandler.isTokenExpiredFromStatusCode(
-          response.statusCode ?? 0, response.data.toString())) {
-        await TokenHandler.handleTokenExpiration(context);
-        throw Exception("Token expired. Please login again.");
-      }
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         return response.data;
       } else {
@@ -405,13 +410,6 @@ class ApiService {
       if (kDebugMode) {
         print("markasread ${response.data}");
         print("markasread ${response.statusCode}");
-      }
-
-      // Check for token expiration
-      if (TokenHandler.isTokenExpiredFromStatusCode(
-          response.statusCode ?? 0, response.data.toString())) {
-        await TokenHandler.handleTokenExpiration(context);
-        throw Exception("Token expired. Please login again.");
       }
 
       if (response.statusCode == 200) {

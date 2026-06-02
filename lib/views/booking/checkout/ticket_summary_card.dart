@@ -1,34 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:sumarg/models/trip_response.dart';
-import 'package:sumarg/utils/color_constants.dart';
+import 'dart:ui';
+import 'package:sumarg/utils/app_theme.dart';
 
 class TicketSummaryCard extends StatelessWidget {
   final TripData busData;
   final String selectedSeats;
-  final String passengerName;
+  final TextEditingController nameController;
+  final TextEditingController phoneController;
+  final TextEditingController emailController;
 
   const TicketSummaryCard({
     super.key,
     required this.busData,
     required this.selectedSeats,
-    required this.passengerName,
+    required this.nameController,
+    required this.phoneController,
+    required this.emailController,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primaryDarkest,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.primaryDark.withOpacity(0.5), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryDarkest.withOpacity(0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xE000564E), // AppTheme.primary with 88% opacity
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryDarkest.withOpacity(0.4),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -36,7 +45,7 @@ class TicketSummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             decoration: BoxDecoration(
-              color: AppColors.primaryDark.withOpacity(0.4),
+              color: AppTheme.primaryDark.withOpacity(0.4),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(24),
                 topRight: Radius.circular(24),
@@ -51,12 +60,12 @@ class TicketSummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       busData.departureTime,
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       busData.routeDetail.from,
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13, fontWeight: FontWeight.w500),
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -69,16 +78,16 @@ class TicketSummaryCard extends StatelessWidget {
                       children: [
                         Text(
                           busData.routeDetail.duration,
-                          style: const TextStyle(color: AppColors.secondary, fontSize: 13, fontWeight: FontWeight.w700),
+                          style: const TextStyle(color: AppTheme.accentLime, fontSize: 13, fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primaryLight)),
-                            Expanded(child: Container(height: 2, color: AppColors.primaryLight.withOpacity(0.4))),
-                            const Icon(Icons.directions_bus_filled, color: AppColors.primaryLight, size: 20),
-                            Expanded(child: Container(height: 2, color: AppColors.primaryLight.withOpacity(0.4))),
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.primaryLight)),
+                            Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.textSecondary.withOpacity(0.5))),
+                            Expanded(child: Container(height: 2, color: AppTheme.textSecondary.withOpacity(0.2))),
+                            const Icon(Icons.directions_bus_filled, color: AppTheme.accentLime, size: 20),
+                            Expanded(child: Container(height: 2, color: AppTheme.textSecondary.withOpacity(0.2))),
+                            Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.textSecondary.withOpacity(0.5))),
                           ],
                         )
                       ],
@@ -92,12 +101,12 @@ class TicketSummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       busData.arrivalTime,
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       busData.routeDetail.to,
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13, fontWeight: FontWeight.w500),
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -112,20 +121,20 @@ class TicketSummaryCard extends StatelessWidget {
                 height: 20, 
                 width: 10,
                 decoration: const BoxDecoration(
-                  color: AppColors.white, // Match background Color
+                  color: AppTheme.primaryDarkest, // Cutout matches scaffold bg
                   borderRadius: BorderRadius.only(topRight: Radius.circular(20), bottomRight: Radius.circular(20))
                 ),
               ),
               Expanded(
                 child: CustomPaint(
-                  painter: DashedLinePainter(color: AppColors.primaryLight.withOpacity(0.3)),
+                  painter: DashedLinePainter(color: Colors.white.withOpacity(0.1)),
                 ),
               ),
               Container(
                 height: 20, 
                 width: 10,
                 decoration: const BoxDecoration(
-                  color: AppColors.white, // Match background Color
+                  color: AppTheme.primaryDarkest, 
                   borderRadius: BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20))
                 ),
               ),
@@ -136,16 +145,27 @@ class TicketSummaryCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow("Passenger", passengerName, "Date", busData.tripDate),
-                const SizedBox(height: 24),
-                _buildInfoRow("Selected Seats", selectedSeats, "Booking Time", "Now"),
+                _buildInfoRow("Selected Seats", selectedSeats, "Date", busData.tripDate.split('T')[0]),
                 const SizedBox(height: 24),
                 _buildInfoRow("Bus Operator", busData.busDetail.busName, "Bus Number", busData.busDetail.busNumber),
+                
+                const SizedBox(height: 32),
+                const Text("Primary Contact", style: TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 16),
+                
+                _buildInputField(label: "Full Name", controller: nameController, icon: Icons.person_outline),
+                const SizedBox(height: 12),
+                _buildInputField(label: "Phone Number", controller: phoneController, icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
+                const SizedBox(height: 12),
+                _buildInputField(label: "Email Address (Optional)", controller: emailController, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
               ],
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -160,12 +180,12 @@ class TicketSummaryCard extends StatelessWidget {
             children: [
               Text(
                 label1,
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 4),
               Text(
                 value1,
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -179,12 +199,12 @@ class TicketSummaryCard extends StatelessWidget {
             children: [
               Text(
                 label2,
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 4),
               Text(
                 value2,
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -192,6 +212,34 @@ class TicketSummaryCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInputField({
+    required String label, 
+    required TextEditingController controller, 
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: label,
+          hintStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 15, fontWeight: FontWeight.w500),
+          prefixIcon: Icon(icon, color: AppTheme.textSecondary, size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        ),
+      ),
     );
   }
 }

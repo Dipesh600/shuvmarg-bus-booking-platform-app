@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:sumarg/utils/color_constants.dart';
+import 'package:sumarg/utils/app_theme.dart';
 
 class QRCodeWidget extends StatelessWidget {
   final String qrData;
@@ -17,52 +17,38 @@ class QRCodeWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppTheme.inputBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.stroke, width: 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'QR Code',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.text,
-            ),
-          ),
-          const SizedBox(height: 12),
+          // QR code on a white background (required for scanning)
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: QrImageView(
               data: qrData,
               version: QrVersions.auto,
-              size: size * 1.4,
+              size: size,
               backgroundColor: Colors.white,
             ),
           ),
           if (description != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               description!,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[600],
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,

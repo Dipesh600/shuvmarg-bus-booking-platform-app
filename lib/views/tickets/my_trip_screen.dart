@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import '../../utils/color_constants.dart';
+import '../../utils/app_theme.dart';
 import '../../providers/ticket_provider.dart';
 import '../../utils/provider_helper.dart';
 import 'package:sumarg/views/widgets/ticket_history_widget.dart';
+import 'package:sumarg/views/widgets/status_state_widget.dart';
+import 'package:sumarg/views/widgets/ticket_skeleton_widget.dart';
 
 class MyTripScreen extends StatefulWidget {
   const MyTripScreen({super.key});
@@ -43,193 +46,129 @@ class _MyTripScreenState extends State<MyTripScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        title: const Text(
-          'My Trips',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        elevation: 0,
-        actions: [
-          Consumer<TicketProvider>(
-            builder: (context, ticketProvider, child) {
-              return IconButton(
-                onPressed: () {
-                  ticketProvider.refreshTickets();
-                },
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh trips',
-              );
-            },
-          ),
-        ],
-      ),
-      body: Consumer<TicketProvider>(
-        builder: (context, ticketProvider, child) {
-          if (ticketProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
-            );
-          }
-
-          if (ticketProvider.error.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: AppTheme.primaryDark,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Clean Header matching Available Buses
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red.withOpacity(0.5),
+                  Row(
+                    children: [
+                      if (Navigator.canPop(context)) ...[
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: Icon(
+                              Icons.chevron_left_rounded,
+                              color: AppTheme.textPrimary,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ],
+                      RichText(
+                        text: const TextSpan(
+                          style: TextStyle(
+                            fontFamily: AppTheme.fontFamily,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'My ',
+                              style: TextStyle(color: AppTheme.textPrimary),
+                            ),
+                            TextSpan(
+                              text: 'Trips',
+                              style: TextStyle(color: AppTheme.accentLime),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading trips',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.withOpacity(0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    ticketProvider.error,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.withOpacity(0.5),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      ticketProvider.refreshTickets();
+                  Consumer<TicketProvider>(
+                    builder: (context, ticketProvider, child) {
+                      return GestureDetector(
+                        onTap: () => ticketProvider.refreshTickets(),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Icon(
+                            Icons.refresh_rounded,
+                            color: AppTheme.accentLime,
+                            size: 22,
+                          ),
+                        ),
+                      );
                     },
-                    child: const Text('Retry'),
                   ),
                 ],
               ),
-            );
-          }
-
-          if (!ticketProvider.hasTickets) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    FontAwesomeIcons.bus,
-                    size: 64,
-                    color: Colors.grey.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No trips found',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Your trips will appear here',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
+            ),
+            // Body
+            Expanded(
+              child: Consumer<TicketProvider>(
+                builder: (context, ticketProvider, child) {
+                  Widget content;
+                  if (ticketProvider.isLoading) {
+                    content = _buildLoadingState();
+                  } else if (ticketProvider.error.isNotEmpty) {
+                    content = _buildErrorState(ticketProvider);
+                  } else if (!ticketProvider.hasTickets) {
+                    content = _buildEmptyState();
+                  } else {
+                    content = RefreshIndicator(
+                      key: const ValueKey('tickets'),
+                      onRefresh: () async {
+                        await ticketProvider.refreshTickets();
+                      },
+                      color: AppTheme.accentLime,
+                      backgroundColor: AppTheme.primaryDarker,
+                      child: TicketHistoryWidget(
+                        ticketHistoryData: ticketProvider.tickets,
+                      ),
+                    );
+                  }
+                  
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    child: content,
+                  );
+                },
               ),
-            );
-          }
-
-          return Column(
-            children: [
-              // Online/Offline indicator
-              // Container(
-              //   width: double.infinity,
-              //   padding: const EdgeInsets.symmetric(
-              //       vertical: 8, horizontal: 16),
-              //   color: ticketProvider.isOffline
-              //       ? Colors.orange.withOpacity(0.1)
-              //       : Colors.green.withOpacity(0.1),
-              //   child: Row(
-              //     children: [
-              //       Icon(
-              //         ticketProvider.isOffline
-              //             ? Icons.wifi_off
-              //             : Icons.wifi,
-              //         size: 16,
-              //         color: ticketProvider.isOffline
-              //             ? Colors.orange[700]
-              //             : Colors.green[700],
-              //       ),
-              //       const SizedBox(width: 8),
-              //       Expanded(
-              //         child: Column(
-              //           crossAxisAlignment: CrossAxisAlignment.start,
-              //           children: [
-              //             Text(
-              //               ticketProvider.isOffline
-              //                   ? 'Showing offline data'
-              //                   : 'Live data',
-              //               style: TextStyle(
-              //                 fontSize: 12,
-              //                 color: ticketProvider.isOffline
-              //                     ? Colors.orange[700]
-              //                     : Colors.green[700],
-              //                 fontWeight: FontWeight.w500,
-              //               ),
-              //             ),
-              //             if (ticketProvider.lastUpdated != null)
-              //               Text(
-              //                 'Last synced: ${_formatLastUpdated(ticketProvider.lastUpdated!)}',
-              //                 style: TextStyle(
-              //                   fontSize: 10,
-              //                   color: ticketProvider.isOffline
-              //                       ? Colors.orange[600]
-              //                       : Colors.green[600],
-              //                 ),
-              //               ),
-              //           ],
-              //         ),
-              //       ),
-              //       Icon(
-              //         ticketProvider.isOffline
-              //             ? Icons.info_outline
-              //             : Icons.check_circle,
-              //         size: 16,
-              //         color: ticketProvider.isOffline
-              //             ? Colors.orange[600]
-              //             : Colors.green[600],
-              //       ),
-              //     ],
-              //   ),
-              // ),
-
-              // Ticket history data
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    await ticketProvider.refreshTickets();
-                  },
-                  color: AppColors.primary,
-                  child: TicketHistoryWidget(
-                    ticketHistoryData: ticketProvider.tickets,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const TicketSkeletonWidget(
+      key: ValueKey('loading'),
+    );
+  }
+
+  Widget _buildErrorState(TicketProvider provider) {
+    return StatusStateWidget.error(
+      rawError: provider.error,
+      onRetry: () => provider.refreshTickets(),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return StatusStateWidget.empty(
+      title: 'No trips found',
+      subtitle: 'Your booked trips will appear here',
+      icon: FontAwesomeIcons.bus,
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'package:sumarg/models/ticket_history_response.dart';
+
 class TripData {
   final String tripId;
   final String busNumber;
@@ -13,6 +15,8 @@ class TripData {
   final String ticketId;
   final String passengerName;
   final bool review;
+  final String fleetId; // Bus fleet ID — needed for review submission + fetching reviews
+  final RefundInfo? refundInfo;
 
   TripData({
     required this.tripId,
@@ -29,9 +33,10 @@ class TripData {
     required this.ticketId,
     required this.review,
     required this.passengerName,
+    this.fleetId = '',
+    this.refundInfo,
   });
 
-  // Add fromJson method if you need to parse from JSON
   factory TripData.fromJson(Map<String, dynamic> json) {
     return TripData(
       tripId: json['tripId'] ?? '',
@@ -48,7 +53,10 @@ class TripData {
       ticketId: json['ticketId'] ?? '',
       passengerName: json['passengerName'] ?? '',
       review: json['review'] ?? false,
-
+      fleetId: json['fleetId'] ?? '',
+      refundInfo: json['refundInfo'] != null
+          ? RefundInfo.fromJson(json['refundInfo'])
+          : null,
     );
   }
 }

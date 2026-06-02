@@ -6,7 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
-import '../../utils/color_constants.dart';
+import 'dart:ui' as ui;
+import '../../utils/app_theme.dart';
 import '../../models/ticket_history_response.dart';
 import '../../models/trip_data.dart';
 import '../../views/review/review_screen.dart';
@@ -21,8 +22,7 @@ class TicketHistoryWidget extends StatefulWidget {
   });
 
   @override
-  State<TicketHistoryWidget> createState() =>
-      _TicketHistoryWidgetState();
+  State<TicketHistoryWidget> createState() => _TicketHistoryWidgetState();
 }
 
 class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
@@ -32,6 +32,8 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
   final List<TripData> _upcomingTrips = [];
   final List<TripData> _completedTrips = [];
   final List<TripData> _cancelledTrips = [];
+
+  bool _isInitialized = false;
 
   @override
   void initState() {
@@ -48,86 +50,88 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
     }
   }
 
-  /// Parse ticket date from various formats
   DateTime? _parseTicketDate(String dateString) {
     try {
-      // Remove any extra whitespace
-      dateString = dateString.trim();
-
+      // Strip any potential literal quotes or extra spaces that might break tryParse
+      dateString = dateString.replaceAll('"', '').replaceAll("'", '').trim();
+      debugPrint('parsing clean date string: $dateString');
+      
+      // Try native parse first (handles ISO 8601 like 2026-05-21T00:00:00.000Z)
+      final parsed = DateTime.tryParse(dateString);
+      if (parsed != null) {
+        debugPrint('native parse success: $parsed');
+        return parsed;
+      }
+      
+      // Fallback for custom formats
       if (dateString.contains('-')) {
-        // Format: 2025-10-05 or 2025-9-28
         final dateParts = dateString.split('-');
-        if (dateParts.length == 3) {
+        if (dateParts.length >= 3) {
           return DateTime(
-            int.parse(dateParts[0]), // year
-            int.parse(dateParts[1]), // month
-            int.parse(dateParts[2]), // day
+            int.parse(dateParts[0]),
+            int.parse(dateParts[1]),
+            int.parse(dateParts[2].substring(0, 2)), // safely grab just the day digits
           );
         }
       } else if (dateString.contains('/')) {
-        // Format: 05/10/2025 or 28/09/2025
         final dateParts = dateString.split('/');
         if (dateParts.length == 3) {
           return DateTime(
-            int.parse(dateParts[2]), // year
-            int.parse(dateParts[1]), // month
-            int.parse(dateParts[0]), // day
+            int.parse(dateParts[2]),
+            int.parse(dateParts[1]),
+            int.parse(dateParts[0]),
           );
         }
       }
     } catch (e) {
-      print('Error parsing ticket date: $dateString, error: $e');
+      debugPrint('Error parsing ticket date: $dateString, error: $e');
     }
+    debugPrint('returning null for dateString: $dateString');
     return null;
   }
 
   Future<void> _initializeData() async {
     await _convertApiDataToTripData();
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _isInitialized = true;
+      });
     }
   }
 
-  Future<void> _convertApiDataToTripData() async {
-    _allTrips.clear();
-    _upcomingTrips.clear();
-    _completedTrips.clear();
-    _cancelledTrips.clear();
+  String _formatDate(DateTime date) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${date.day} ${months[date.month - 1]}, ${date.year}';
+  }
 
-    // Get passenger name from SharedPreferences
+  Future<void> _convertApiDataToTripData() async {
+    final List<TripData> newAllTrips = [];
+    final List<TripData> newUpcomingTrips = [];
+    final List<TripData> newCompletedTrips = [];
+    final List<TripData> newCancelledTrips = [];
+
     final prefs = await SharedPreferences.getInstance();
     final passengerName = prefs.getString('name') ?? 'Passenger';
-
-    // Get current device date
     final currentDate = DateTime.now();
-    final todayStart = DateTime(
-        currentDate.year, currentDate.month, currentDate.day);
+    final todayStart = DateTime(currentDate.year, currentDate.month, currentDate.day);
 
     for (var ticketData in widget.ticketHistoryData) {
       final booking = ticketData.booking;
       final trip = ticketData.trip;
-      
-      // Parse ticket date using helper method
       final ticketDate = trip != null ? _parseTicketDate(trip.tripDate) : null;
-
-      // Determine status based on date comparison and booking status
       String status;
       
-      // First check if it's cancelled or refunded
       if (booking.status.toLowerCase() == 'cancelled' ||
           booking.status.toLowerCase() == 'canceled' ||
           booking.refundStatus.toLowerCase() == 'refunded') {
         status = 'cancelled';
-      }
-      // Then check date-based logic for non-cancelled tickets
-      else if (ticketDate != null) {
+      } else if (ticketDate != null) {
         if (ticketDate.isAfter(todayStart)) {
           status = 'upcoming';
         } else {
           status = 'completed';
         }
-      }
-      else {
+      } else {
         if (booking.status.toLowerCase() == 'completed') {
           status = 'completed';
         } else {
@@ -135,13 +139,12 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
         }
       }
 
-      // Create TripData from API data
       final tripData = TripData(
         tripId: trip?.id ?? booking.ticketId,
         busNumber: trip?.busId.busNumber ?? 'N/A',
         from: trip?.routeDetail.from ?? 'N/A',
         to: trip?.routeDetail.to ?? 'N/A',
-        date: trip?.tripDate ?? 'N/A',
+        date: ticketDate != null ? _formatDate(ticketDate) : (trip?.tripDate ?? 'N/A'),
         time: trip?.departureTime ?? 'N/A',
         status: status,
         operatorName: trip?.busId.busName ?? 'N/A',
@@ -151,389 +154,81 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
         ticketId: booking.ticketId,
         review: booking.review,
         passengerName: passengerName,
+        fleetId: trip?.busId.id ?? '',
+        refundInfo: ticketData.refund,
       );
 
-      _allTrips.add(tripData);
-
-      // Filter by status
+      newAllTrips.add(tripData);
       switch (status) {
-        case 'upcoming':
-          _upcomingTrips.add(tripData);
-          break;
-        case 'completed':
-          _completedTrips.add(tripData);
-          break;
-        case 'cancelled':
-          _cancelledTrips.add(tripData);
-          break;
+        case 'upcoming': newUpcomingTrips.add(tripData); break;
+        case 'completed': newCompletedTrips.add(tripData); break;
+        case 'cancelled': newCancelledTrips.add(tripData); break;
       }
     }
+    
+    // Only update state after processing is fully complete
+    _allTrips.clear();
+    _allTrips.addAll(newAllTrips);
+    _upcomingTrips.clear();
+    _upcomingTrips.addAll(newUpcomingTrips);
+    _completedTrips.clear();
+    _completedTrips.addAll(newCompletedTrips);
+    _cancelledTrips.clear();
+    _cancelledTrips.addAll(newCancelledTrips);
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'upcoming':
-        return Colors.green;
-      case 'completed':
-        return Colors.grey;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
+      case 'upcoming': return AppTheme.accentLime;
+      case 'completed': return AppTheme.textSecondary;
+      case 'cancelled': return const Color(0xFFFF4D4F);
+      default: return AppTheme.textSecondary;
     }
   }
 
   String _getStatusText(String status) {
     switch (status) {
-      case 'upcoming':
-        return 'Upcoming';
-      case 'completed':
-        return 'Completed';
-      case 'cancelled':
-        return 'Cancelled';
-      default:
-        return 'Unknown';
+      case 'upcoming': return 'Upcoming';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      default: return 'Unknown';
     }
   }
 
   IconData _getStatusIcon(String status) {
     switch (status) {
-      case 'upcoming':
-        return Icons.schedule;
-      case 'completed':
-        return Icons.check_circle;
-      case 'cancelled':
-        return Icons.cancel;
-      default:
-        return Icons.info;
-    }
-  }
-
-  Future<void> _generateAndDownloadPDF(TripData trip) async {
-    try {
-      // Create PDF document
-      final pdf = pw.Document();
-
-      // Generate QR code data
-      final qrData = '${trip.ticketId}_${trip.tripId}';
-
-      // Create QR code image
-      final qrImage = await QrPainter(
-        data: qrData,
-        version: QrVersions.auto,
-        color: const Color(0xFF000000),
-        emptyColor: const Color(0xFFFFFFFF),
-      ).toImageData(200);
-
-      // Convert QR image to PDF image
-      final qrPdfImage =
-          pw.MemoryImage(qrImage!.buffer.asUint8List());
-
-      // Add PDF page
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          build: (pw.Context context) {
-            return pw.Container(
-              padding: const pw.EdgeInsets.all(20),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  pw.Container(
-                    width: double.infinity,
-                    padding: const pw.EdgeInsets.all(20),
-                    decoration: const pw.BoxDecoration(
-                      color: PdfColors.blue,
-                      borderRadius: pw.BorderRadius.all(
-                          pw.Radius.circular(10)),
-                    ),
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'BUS TICKET',
-                          style: pw.TextStyle(
-                            fontSize: 24,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.white,
-                          ),
-                        ),
-                        pw.SizedBox(height: 8),
-                        pw.Text(
-                          'Ticket ID: ${trip.ticketId}',
-                          style: const pw.TextStyle(
-                            fontSize: 14,
-                            color: PdfColors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  pw.SizedBox(height: 20),
-
-                  // Trip Details
-                  pw.Container(
-                    padding: const pw.EdgeInsets.all(15),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey),
-                      borderRadius: const pw.BorderRadius.all(
-                          pw.Radius.circular(8)),
-                    ),
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'Trip Details',
-                          style: pw.TextStyle(
-                            fontSize: 18,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.black,
-                          ),
-                        ),
-                        pw.SizedBox(height: 15),
-
-                        // Bus Info
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'Bus Number: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(trip.busNumber),
-                          ],
-                        ),
-                        pw.SizedBox(height: 8),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'Operator: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(trip.operatorName),
-                          ],
-                        ),
-                        pw.SizedBox(height: 8),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'Status: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(trip.status.toUpperCase()),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  pw.SizedBox(height: 20),
-
-                  // Route Details
-                  pw.Container(
-                    padding: const pw.EdgeInsets.all(15),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey),
-                      borderRadius: const pw.BorderRadius.all(
-                          pw.Radius.circular(8)),
-                    ),
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'Route Information',
-                          style: pw.TextStyle(
-                            fontSize: 18,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.black,
-                          ),
-                        ),
-                        pw.SizedBox(height: 15),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'From: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(trip.from),
-                          ],
-                        ),
-                        pw.SizedBox(height: 8),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'To: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(trip.to),
-                          ],
-                        ),
-                        pw.SizedBox(height: 8),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'Date: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(trip.date),
-                          ],
-                        ),
-                        pw.SizedBox(height: 8),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'Time: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(trip.time),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  pw.SizedBox(height: 20),
-
-                  // Booking Details
-                  pw.Container(
-                    padding: const pw.EdgeInsets.all(15),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey),
-                      borderRadius: const pw.BorderRadius.all(
-                          pw.Radius.circular(8)),
-                    ),
-                    child: pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'Booking Information',
-                          style: pw.TextStyle(
-                            fontSize: 18,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.black,
-                          ),
-                        ),
-                        pw.SizedBox(height: 15),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'Seats: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(trip.seats.join(', ')),
-                          ],
-                        ),
-                        pw.SizedBox(height: 8),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'Price: ',
-                              style: pw.TextStyle(
-                                  fontWeight: pw.FontWeight.bold),
-                            ),
-                            pw.Text(
-                                'Rs. ${trip.price.toStringAsFixed(0)}'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  pw.SizedBox(height: 30),
-
-                  // QR Code
-                  pw.Center(
-                    child: pw.Column(
-                      children: [
-                        pw.Text(
-                          'Scan QR Code to Verify Ticket',
-                          style: const pw.TextStyle(
-                            fontSize: 14,
-                            color: PdfColors.grey,
-                          ),
-                        ),
-                        pw.SizedBox(height: 10),
-                        pw.Image(qrPdfImage, width: 150, height: 150),
-                      ],
-                    ),
-                  ),
-
-                  pw.SizedBox(height: 20),
-
-                  // Footer
-                  pw.Center(
-                    child: pw.Text(
-                      'Generated on ${DateTime.now().toString().split('.')[0]}',
-                      style: const pw.TextStyle(
-                        fontSize: 10,
-                        color: PdfColors.grey,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      );
-
-      // Save PDF to device
-      final directory = await getApplicationDocumentsDirectory();
-      final file =
-          File('${directory.path}/ticket_${trip.ticketId}.pdf');
-      await file.writeAsBytes(await pdf.save());
-
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ticket PDF saved to: ${file.path}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to generate PDF: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      case 'upcoming': return Icons.schedule_rounded;
+      case 'completed': return Icons.check_circle_rounded;
+      case 'cancelled': return Icons.cancel_rounded;
+      default: return Icons.info_outline_rounded;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       children: [
-        // Tab Bar
+        // Minimal Tab Navigation
         Container(
-          color: AppColors.primary,
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: TabBar(
             controller: _tabController,
-            indicatorColor: AppColors.white,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            padding: EdgeInsets.zero,
+            labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+            indicatorColor: AppTheme.accentLime,
             indicatorWeight: 3,
-            labelColor: AppColors.white,
-            unselectedLabelColor: AppColors.white.withOpacity(0.7),
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.normal,
-              fontSize: 14,
-            ),
+            indicatorSize: TabBarIndicatorSize.label,
+            labelColor: AppTheme.accentLime,
+            unselectedLabelColor: AppTheme.textSecondary,
+            dividerColor: Colors.transparent,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             tabs: const [
               Tab(text: 'All'),
               Tab(text: 'Upcoming'),
@@ -542,7 +237,6 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
             ],
           ),
         ),
-
         // Tab Bar View
         Expanded(
           child: TabBarView(
@@ -563,18 +257,22 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
     return Column(
       children: [
         // Header with count
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 12),
-          color: AppColors.primaryLightest,
-          child: Text(
-            '$title (${trips.length})',
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+          child: Row(
+            children: [
+              Text(title, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 16)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.inputBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.stroke, width: 1),
+                ),
+                child: Text('${trips.length}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+            ],
           ),
         ),
         // Trip list
@@ -582,7 +280,7 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
           child: trips.isEmpty
               ? _buildEmptyState(title)
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
                   itemCount: trips.length,
                   itemBuilder: (context, index) {
                     return _buildTripCard(trips[index]);
@@ -594,343 +292,284 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
   }
 
   Widget _buildTripCard(TripData trip) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    final statusColor = _getStatusColor(trip.status);
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TicketDetailScreen(tripData: trip),
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header with status
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _getStatusColor(trip.status),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppTheme.stroke, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryDarkest.withOpacity(0.35),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
             ),
-            child: Row(
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: Column(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                // Status Ribbon
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: AppTheme.stroke, width: 1)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        trip.busNumber,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: AppColors.text,
-                        ),
+                      Row(
+                        children: [
+                          Icon(_getStatusIcon(trip.status), color: statusColor, size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            _getStatusText(trip.status),
+                            style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 13, letterSpacing: 0.5),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        trip.operatorName,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Passenger: ${trip.passengerName}',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text('ID: ${trip.ticketId}',
+                        style: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500, fontSize: 12)),
                     ],
                   ),
                 ),
-                // Ticket Status
-                // Container(
-                //   padding: const EdgeInsets.symmetric(
-                //       horizontal: 12, vertical: 6),
-                //   decoration: BoxDecoration(
-                //     color: _getStatusColor(trip.status),
-                //     borderRadius: BorderRadius.circular(20),
-                //   ),
-                //   child: Row(
-                //     mainAxisSize: MainAxisSize.min,
-                //     children: [
-                //       Icon(
-                //         _getStatusIcon(trip.status),
-                //         color: AppColors.white,
-                //         size: 16,
-                //       ),
-                //       const SizedBox(width: 4),
-                //       Text(
-                //         _getStatusText(trip.status),
-                //         style: const TextStyle(
-                //           color: AppColors.white,
-                //           fontWeight: FontWeight.bold,
-                //           fontSize: 12,
-                //         ),
-                //       ),
-                //     ],
-                //   ),
-                // ),
-              ],
-            ),
-          ),
-
-          // Trip details
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Route info
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
+                
+                // Body
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // Bus & Route Info
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on,
-                                  color: Colors.green, size: 16),
-                              const SizedBox(width: 8),
-                              Text(
-                                trip.from,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                          // Route Timeline
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.circle_outlined, color: AppTheme.textSecondary, size: 12),
+                                Container(
+                                  height: 32, 
+                                  width: 1.5, 
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  color: AppTheme.stroke
                                 ),
-                              ),
-                            ],
+                                const Icon(Icons.location_on_outlined, color: AppTheme.accentLime, size: 14),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
+                          const SizedBox(width: 16),
+                          // Locations
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(trip.from, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+                                const SizedBox(height: 24),
+                                Text(trip.to, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                          ),
+                          // Right side (Time & Bus)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              const Icon(Icons.location_on,
-                                  color: Colors.red, size: 16),
-                              const SizedBox(width: 8),
-                              Text(
-                                trip.to,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                              Text(trip.time, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 4),
+                              Text(trip.date, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.inputBg,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppTheme.stroke)
                                 ),
+                                child: Text(trip.operatorName, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
                               ),
                             ],
                           ),
                         ],
                       ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          trip.date,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        Text(
-                          trip.time,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Trip details
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.event_seat,
-                            color: AppColors.primary, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          trip.seats.length == 1
-                              ? 'Seat ${trip.seats.first}'
-                              : 'Seats ${trip.seats.join(', ')}',
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      'Rs. ${trip.price.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: AppColors.secondary,
+                      
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Divider(color: AppTheme.stroke, height: 1),
                       ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                Row(
-                  children: [
-                    const Icon(Icons.receipt,
-                        color: Colors.grey, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Ticket ID: ${trip.ticketId}',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
+                      
+                      // Seats & Price
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.chair_alt_outlined, color: AppTheme.textSecondary, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                trip.seats.map((s) => s.toUpperCase()).join(', '),
+                                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryDarkest.withOpacity(0.5),
+                              border: Border.all(color: AppTheme.accentLime.withOpacity(0.3), width: 1),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.accentLime.withOpacity(0.1),
+                                  blurRadius: 8,
+                                )
+                              ]
+                            ),
+                            child: Text(
+                              'Rs. ${trip.price.toStringAsFixed(0)}',
+                              style: const TextStyle(color: AppTheme.accentLime, fontSize: 15, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                // Actions
+                _buildCardActions(trip),
               ],
             ),
           ),
-          // Action buttons
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardActions(TripData trip) {
+    if (trip.status == 'cancelled') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        decoration: const BoxDecoration(
+          color: AppTheme.primaryDarker,
+          border: Border(top: BorderSide(color: AppTheme.stroke, width: 1)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _viewDetails(trip),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.textPrimary,
+                  side: const BorderSide(color: AppTheme.stroke),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
-            child: trip.status == 'cancelled'
-                ? Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TicketDetailScreen(
-                                  tripData: trip,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.visibility, size: 16),
-                          label: const Text('View Details'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side:
-                                const BorderSide(color: AppColors.primary),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: null,
-                        icon: const Icon(Icons.cancel, size: 16),
-                        label: const Text('Canceled'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: Colors.red,
-                          disabledForegroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TicketDetailScreen(
-                                  tripData: trip,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.visibility, size: 16),
-                          label: const Text('View Details'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: const BorderSide(color: AppColors.primary),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (trip.status == 'completed' && trip.review == false) ...[
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ReviewScreen(
-                                    trip: TripData(
-                                      tripId: trip.tripId,
-                                      busNumber: trip.busNumber,
-                                      from: trip.from,
-                                      to: trip.to,
-                                      date: trip.date,
-                                      time: trip.time,
-                                      status: trip.status,
-                                      operatorName: trip.operatorName,
-                                      seats: trip.seats,
-                                      price: trip.price,
-                                      ticketId: trip.ticketId,
-                                      passengerName: trip.passengerName,
-                                      bookingId: trip.bookingId,
-                                      review: trip.review,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.star_border, size: 16),
-                            label: const Text('Add Review'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.orange,
-                              side: const BorderSide(color: Colors.orange),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.cancel_rounded, size: 16),
+                label: const Text('Cancelled', style: TextStyle(fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.error.withOpacity(0.1),
+                  disabledBackgroundColor: AppTheme.error.withOpacity(0.1),
+                  disabledForegroundColor: AppTheme.error,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: const BoxDecoration(
+        color: AppTheme.primaryDarker,
+        border: Border(top: BorderSide(color: AppTheme.stroke, width: 1)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => _viewDetails(trip),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.textPrimary,
+                side: const BorderSide(color: AppTheme.stroke),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text('View Details', style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
           ),
+          if (trip.status == 'completed' && trip.review == false) ...[
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _addReview(trip),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentLime,
+                  foregroundColor: AppTheme.primaryDark,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: const Text('Add Review', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _viewDetails(TripData trip) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => TicketDetailScreen(tripData: trip)));
+  }
+
+  void _addReview(TripData trip) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReviewScreen(
+          trip: TripData(
+            tripId: trip.tripId,
+            busNumber: trip.busNumber,
+            from: trip.from,
+            to: trip.to,
+            date: trip.date,
+            time: trip.time,
+            status: trip.status,
+            operatorName: trip.operatorName,
+            seats: trip.seats,
+            price: trip.price,
+            ticketId: trip.ticketId,
+            passengerName: trip.passengerName,
+            bookingId: trip.bookingId,
+            review: trip.review,
+            fleetId: trip.fleetId,
+          ),
+        ),
       ),
     );
   }
@@ -940,27 +579,24 @@ class _TicketHistoryWidgetState extends State<TicketHistoryWidget>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            FontAwesomeIcons.bus,
-            size: 64,
-            color: Colors.grey.withOpacity(0.5),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppTheme.inputBg,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.stroke, width: 1),
+            ),
+            child: const Icon(FontAwesomeIcons.ticket, size: 40, color: AppTheme.textSecondary),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
             'No $title',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.withOpacity(0.7),
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Your trips will appear here',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.withOpacity(0.5),
-            ),
+            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
           ),
         ],
       ),

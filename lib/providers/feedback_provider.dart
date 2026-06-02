@@ -21,6 +21,7 @@ class FeedbackProvider extends ChangeNotifier {
 
   Future<ForAllResponse> submitReview({
     required String bookingId,
+    required String fleetId,
     required int rating,
     required String comment,
   }) async {
@@ -31,6 +32,7 @@ class FeedbackProvider extends ChangeNotifier {
     try {
       final response = await _feedbackController.submitReview(
         bookingId: bookingId,
+        fleetId: fleetId,
         rating: rating,
         comment: comment,
       );
@@ -44,7 +46,7 @@ class FeedbackProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchFeedback({required String bussNo, bool forceRefresh = false}) async {
+  Future<void> fetchFeedback({required String fleetId, bool forceRefresh = false}) async {
     if (_currentFeedback != null && !forceRefresh) return;
 
     _isLoadingFeedback = true;
@@ -52,7 +54,7 @@ class FeedbackProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _feedbackController.getFeedback(bussNo: bussNo);
+      final response = await _feedbackController.getFeedback(fleetId: fleetId);
       _currentFeedback = response;
     } catch (e) {
       _error = e.toString();
@@ -60,6 +62,12 @@ class FeedbackProvider extends ChangeNotifier {
       _isLoadingFeedback = false;
       notifyListeners();
     }
+  }
+
+  void clearFeedback() {
+    _currentFeedback = null;
+    _error = '';
+    notifyListeners();
   }
 
   void clearError() {

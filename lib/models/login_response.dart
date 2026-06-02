@@ -3,12 +3,14 @@ class LoginResponse {
   final String message;
   final User user;
   final String accessToken;
+  final String? refreshToken;
 
   LoginResponse({
     required this.success,
     required this.message,
     required this.user,
     required this.accessToken,
+    this.refreshToken,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class LoginResponse {
       message: json['message'] ?? '',
       user: User.fromJson(json['user']),
       accessToken: json['accessToken'] ?? '',
+      refreshToken: json['refreshToken'],
     );
   }
 
@@ -26,6 +29,7 @@ class LoginResponse {
       'message': message,
       'user': user.toJson(),
       'accessToken': accessToken,
+      if (refreshToken != null) 'refreshToken': refreshToken,
     };
   }
 }

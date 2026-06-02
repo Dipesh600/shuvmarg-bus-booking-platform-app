@@ -6,6 +6,7 @@ import '../models/ticket_booking_response.dart';
 import '../models/prepare_booking_response.dart';
 import '../models/yatra_points_response.dart';
 import '../models/for_all_response.dart';
+import '../models/cancel_estimate_response.dart';
 import '../utils/local_storage_service.dart';
 
 class TicketProvider extends ChangeNotifier {
@@ -44,6 +45,10 @@ class TicketProvider extends ChangeNotifier {
     return await _ticketController.bookTicket(data);
   }
 
+  Future<TicketBookingResponse> confirmBooking(dynamic data) async {
+    return await _ticketController.confirmBooking(data);
+  }
+
   /// Phase 1 of atomic booking: prepareBooking.
   /// Locks seats + returns server-validated paymentAmount.
   Future<PrepareBookingResponse> prepareBooking(Map<String, dynamic> data) async {
@@ -61,6 +66,10 @@ class TicketProvider extends ChangeNotifier {
       await refreshTickets();
     }
     return res;
+  }
+
+  Future<CancelEstimateResponse> getCancelEstimate(Map<String, dynamic> data) async {
+    return await _ticketController.getCancelEstimate(data);
   }
 
   // Get tickets by status
@@ -135,7 +144,11 @@ class TicketProvider extends ChangeNotifier {
     }
 
     try {
-      final result = await _ticketController.ticketHistoryWithStatus({});
+      final results = await Future.wait([
+        _ticketController.ticketHistoryWithStatus({}),
+        if (showLoading || forceRefresh) Future.delayed(const Duration(milliseconds: 500)),
+      ]);
+      final result = results.first as Map<String, dynamic>?;
 
       if (result != null) {
         final ticketHistory = result['data'] as TicketHistoryResponse;

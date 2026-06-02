@@ -134,4 +134,24 @@ class SeatSelectionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // Helper to check if a specific seat label is booked in the raw data
+  bool isSeatBooked(String seatLabel) {
+    if (_seatResponse == null || _seatResponse!.data == null) return true;
+    final data = _seatResponse!.data!;
+    
+    // Check across all flattened arrays
+    for (var seat in data.seata) {
+      if (seat.seatNo.toUpperCase() == seatLabel.toUpperCase()) return seat.booked;
+    }
+    for (var seat in data.seatb) {
+      if (seat.seatNo.toUpperCase() == seatLabel.toUpperCase()) return seat.booked;
+    }
+    for (var seat in data.seatc) {
+      if (seat.seatNo.toUpperCase() == seatLabel.toUpperCase()) return seat.booked;
+    }
+    
+    // If seat doesn't exist in data, consider it booked/unavailable
+    return true; 
+  }
 }

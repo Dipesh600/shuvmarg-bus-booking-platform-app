@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:sumarg/utils/app_theme.dart';
+
 /// Coupon input and validation section for the checkout flow.
 class CouponSection extends StatelessWidget {
   final TextEditingController controller;
@@ -25,181 +27,138 @@ class CouponSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Column(
-          children: [
-            // Dropdown Header
-            InkWell(
-              onTap: onToggleExpanded,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Have a Coupon Code?",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    AnimatedRotation(
-                      turns: isExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: const Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 24,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        GestureDetector(
+          onTap: onToggleExpanded,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentLime.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.local_offer_rounded, color: AppTheme.accentLime, size: 18),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  "Have a Coupon Code?",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
               ),
-            ),
+              AnimatedRotation(
+                turns: isExpanded ? 0.5 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 24,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
 
-            // Dropdown Content
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              height: isExpanded ? null : 0,
-              child: isExpanded
-                  ? Container(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 15),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: controller,
-                                  enabled: !isApplied,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter coupon code',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide:
-                                          BorderSide(color: Colors.grey.shade300),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide:
-                                          BorderSide(color: Colors.grey.shade300),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                          color: Colors.blue, width: 2),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 16,
-                                    ),
-                                    filled: true,
-                                    fillColor: isApplied
-                                        ? Colors.grey.shade100
-                                        : Colors.white,
-                                  ),
-                                  textCapitalization:
-                                      TextCapitalization.characters,
+        // Expanded Content
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: isExpanded
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: controller,
+                                enabled: !isApplied,
+                                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter code',
+                                  hintStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.5), fontSize: 15),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                                 ),
+                                textCapitalization: TextCapitalization.characters,
                               ),
-                              const SizedBox(width: 15),
-                              ElevatedButton(
-                                onPressed: isApplied
-                                    ? onRemove
-                                    : (isApplying ? null : onApply),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      isApplied ? Colors.red : Colors.blue,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 16,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: GestureDetector(
+                                onTap: isApplied ? onRemove : (isApplying ? null : onApply),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  decoration: BoxDecoration(
+                                    color: isApplied ? AppTheme.error.withOpacity(0.15) : AppTheme.accentLime.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(14),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: isApplying
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
+                                  alignment: Alignment.center,
+                                  child: isApplying
+                                      ? const SizedBox(
+                                          width: 16, height: 16,
+                                          child: CircularProgressIndicator(color: AppTheme.accentLime, strokeWidth: 2),
+                                        )
+                                      : Text(
+                                          isApplied ? "Remove" : "Apply",
+                                          style: TextStyle(
+                                            color: isApplied ? AppTheme.error : AppTheme.accentLime,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
                                         ),
-                                      )
-                                    : Text(
-                                        isApplied ? 'Remove' : 'Apply',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                              ),
-                            ],
-                          ),
-                          if (message != null) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isApplied
-                                    ? Colors.green.withOpacity(0.1)
-                                    : Colors.red.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isApplied
-                                      ? Colors.green.withOpacity(0.3)
-                                      : Colors.red.withOpacity(0.3),
                                 ),
                               ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isApplied
-                                        ? Icons.check_circle
-                                        : Icons.error,
-                                    color: isApplied
-                                        ? Colors.green
-                                        : Colors.red,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      message!,
-                                      style: TextStyle(
-                                        color: isApplied
-                                            ? Colors.green
-                                            : Colors.red,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            )
+                          ],
+                        ),
+                      ),
+                      if (message != null) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(
+                              isApplied ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                              color: isApplied ? AppTheme.success : AppTheme.error,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                message!,
+                                style: TextStyle(
+                                  color: isApplied ? AppTheme.success : AppTheme.error,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
-                        ],
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
-      ),
+      ],
     );
   }
 }
