@@ -436,6 +436,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                                     cardId: card['_id'],
                                     amount: (card['amount'] as num).toDouble(),
                                     isScratched: card['status'] == 'SCRATCHED',
+                                    imageUrl: card['imageUrl'],
                                     onScratchComplete: () {
                                       _scratchCard(card['_id']);
                                     },
