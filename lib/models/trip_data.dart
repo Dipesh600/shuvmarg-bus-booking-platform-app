@@ -7,6 +7,7 @@ class TripData {
   final String to;
   final String date;
   final String time;
+  final String arrivalTime;
   final String status; // 'upcoming', 'completed', 'cancelled'
   final String operatorName;
   final List<String> seats;
@@ -25,6 +26,7 @@ class TripData {
     required this.to,
     required this.date,
     required this.time,
+    required this.arrivalTime,
     required this.status,
     required this.operatorName,
     required this.seats,
@@ -45,6 +47,7 @@ class TripData {
       to: json['to'] ?? '',
       date: json['date'] ?? '',
       time: json['time'] ?? '',
+      arrivalTime: json['arrivalTime'] ?? '',
       status: json['status'] ?? 'upcoming',
       operatorName: json['operatorName'] ?? '',
       seats: List<String>.from(json['seats'] ?? []),

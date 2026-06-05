@@ -13,6 +13,10 @@ class ApiService {
   ApiService() {
     _dio.options.connectTimeout = const Duration(seconds: 15);
     _dio.options.receiveTimeout = const Duration(seconds: 15);
+    // Identify this app as the passenger client to the backend.
+    // Used for cross-role detection (e.g., a bus owner logging into the
+    // passenger app). Never used for authorization — only role enrichment.
+    _dio.options.headers['X-App-Source'] = 'passenger';
     
     _dio.interceptors.add(InterceptorsWrapper(
       onError: (DioException e, handler) async {
