@@ -40,6 +40,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       to: widget.tripData.to,
       date: widget.tripData.date,
       time: widget.tripData.time,
+      arrivalTime: widget.tripData.arrivalTime,
       busNumber: widget.tripData.busNumber,
       busName: widget.tripData.operatorName.isNotEmpty
           ? widget.tripData.operatorName
