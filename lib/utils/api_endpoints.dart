@@ -7,7 +7,7 @@ class ApiEndpoints {
   //   DevTarget.androidEmu   → 10.0.2.2:7012   (Android Studio emulator)
   //   DevTarget.physicalDevice → LAN IP        (real phone on same Wi-Fi)
   //   DevTarget.production   → api.shuvmarg.com (live server)
-  static const _env = DevTarget.physicalDevice;
+  static const _env = DevTarget.macDesktop; // adb reverse tcp:7012 tcp:7012 tunnels USB → Mac localhost
 
   static String get baseUrl {
     switch (_env) {
@@ -16,7 +16,7 @@ class ApiEndpoints {
       case DevTarget.androidEmu:
         return 'http://10.0.2.2:7012';
       case DevTarget.physicalDevice:
-        return 'http://10.53.238.245:7012'; // Your Mac's LAN IP over hotspot
+        return 'http://10.232.45.245:7012'; // Your Mac's LAN IP over hotspot
       case DevTarget.production:
         return 'https://api.shuvmarg.com';
     }
