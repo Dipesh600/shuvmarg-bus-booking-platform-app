@@ -64,7 +64,6 @@ class _SignUpNextScreenState extends State<SignUpNextScreen> {
       if (referralCode.isNotEmpty) "referralCode": referralCode,
     };
     final response = await authController.registeerNextStape(data);
-    print("day res ${response.status}");
     setState(() {
       _isLoading = false;
     });

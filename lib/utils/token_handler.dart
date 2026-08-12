@@ -52,7 +52,19 @@ class TokenHandler {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final newAccessToken = data['accessToken'] as String?;
-        final newRefreshToken = data['refreshToken'] as String?;
+        String? newRefreshToken = data['refreshToken'] as String?;
+
+        // Extract new refresh token from header if not in body
+        if (newRefreshToken == null) {
+          final rawCookie = response.headers['set-cookie'];
+          if (rawCookie != null) {
+            final RegExp regExp = RegExp(r'refreshToken=([^;]+)');
+            final match = regExp.firstMatch(rawCookie);
+            if (match != null) {
+              newRefreshToken = match.group(1);
+            }
+          }
+        }
 
         if (newAccessToken != null && newAccessToken.isNotEmpty) {
           await prefs.setString(_accessTokenKey, newAccessToken);

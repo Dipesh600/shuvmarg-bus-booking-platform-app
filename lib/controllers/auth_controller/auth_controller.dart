@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -33,7 +32,25 @@ class AuthController {
       bool isSuccess = responseData['success'] ?? responseData['status'] ?? false;
 
       if (response.statusCode == 200 && isSuccess) {
+        // Extract refresh token from Set-Cookie header if available
+        String? cookieRefreshToken;
+        final rawCookie = response.headers['set-cookie'];
+        if (rawCookie != null) {
+          final RegExp regExp = RegExp(r'refreshToken=([^;]+)');
+          final match = regExp.firstMatch(rawCookie);
+          if (match != null) {
+            cookieRefreshToken = match.group(1);
+          }
+        }
+
         final loginResponse = LoginResponse.fromJson(responseData);
+        
+        // Use the extracted cookie refresh token if not in the body
+        if (cookieRefreshToken != null && loginResponse.refreshToken == null) {
+          final SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('refreshToken', cookieRefreshToken);
+        }
+
         await _saveLoginResponse(loginResponse);
         return loginResponse;
       } else {
@@ -147,9 +164,6 @@ class AuthController {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(data),
       );
-      if (kDebugMode) {
-        print("register data ${response.body}");
-      }
       if (response.statusCode == 201) {
         final responseData = json.decode(response.body);
         final registerResponse =
@@ -176,7 +190,6 @@ class AuthController {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({"phone": phone, "otp": otp}),
       );
-      print("otp verification response: ${response.body}");
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final otpResponse = ForAllResponse.fromJson(responseData);
@@ -258,7 +271,6 @@ class AuthController {
       final data = {'emailOrPhone': phoneNumber};
       final response =
           await apiService.postData(forgotPasswordUrl, data);
-      print("forgot password responset: ${response}");
       final otpResponse = ForAllResponse.fromJson(response);
       return otpResponse;
     } catch (error) {
@@ -323,8 +335,6 @@ class AuthController {
     try {
       final response =
           await apiService.getDataWithToken(getUserDetailsUrl);
-          print("user details response: ${response}");
-
       final otpResponse = UserDetailResponse.fromJson(response);
       return otpResponse;
     } catch (error) {
