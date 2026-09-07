@@ -1,16 +1,9 @@
+import 'package:sumarg/services/esewa_checkout_service.dart';
+import 'package:sumarg/views/booking/checkout/esewa_checkout_screen.dart';
+import 'package:sumarg/views/tickets/my_trip_screen.dart';
 import 'package:sumarg/utils/toast_service.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:sumarg/controllers/auth_controller/login_provider.dart';
-import 'package:sumarg/utils/api_endpoints.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:esewa_flutter_sdk/esewa_config.dart';
 import 'package:sumarg/widgets/disputed_payment_dialog.dart';
-import 'package:esewa_flutter_sdk/esewa_flutter_sdk.dart';
-import 'package:esewa_flutter_sdk/esewa_payment.dart';
-import 'package:esewa_flutter_sdk/esewa_payment_success_result.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:sumarg/providers/coupon_provider.dart';
@@ -20,15 +13,10 @@ import 'package:sumarg/models/trip_response.dart';
 import 'package:sumarg/models/coupon_response_model.dart';
 // SM Money state is computed server-side — no model needed
 import 'package:sumarg/models/prepare_booking_response.dart';
-import 'package:sumarg/utils/color_constants.dart';
-import 'package:sumarg/utils/esewa_config.dart';
 import 'package:sumarg/views/auth/login_screen.dart';
 import 'package:sumarg/views/tickets/ticket_screen.dart';
-import 'package:sumarg/views/widgets/button_widget.dart';
-import 'package:sumarg/utils/app_theme.dart';
 import 'dart:ui';
 import 'dart:async';
-import 'package:flutter/services.dart';
 import 'package:sumarg/utils/app_theme.dart';
 import 'package:sumarg/widgets/custom_toast.dart';
 import 'package:sumarg/views/booking/checkout/ticket_summary_card.dart';
@@ -202,6 +190,8 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
   bool _isWalletEnabled = false;
   String _selectedPaymentMethod = 'esewa'; // 'esewa' or 'wallet'
   bool _isBooking = false;
+  final _esewaCheckout = EsewaCheckoutService();
+  String? _pendingPayment;
   String? _selectedBoardingPoint;
   String? _selectedDroppingPoint;
 
@@ -231,10 +221,12 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
     _emailController = TextEditingController(text: widget.email);
     
     _startTimer();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _restorePendingPayment());
   }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_isBooking || _pendingPayment != null) return;
       if (_remainingSeconds > 0) {
         setState(() {
           _remainingSeconds--;
@@ -269,13 +261,12 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
 
   /// Build passengerDetails list for the API using the primary contact
   List<Map<String, dynamic>> _buildPassengerDetails() {
-    final seats = widget.selectedSeats;
-    return [{
-      'name':   _nameController.text.trim().isEmpty ? widget.name : _nameController.text.trim(),
-      'phone':  _phoneController.text.trim(),
-      'email':  _emailController.text.trim(),
-      'seatNo': seats,
-    }];
+    return widget.selectedSeats.split(',').map((seat) => {
+      'name': _nameController.text.trim().isEmpty ? widget.name : _nameController.text.trim(),
+      'phone': _phoneController.text.trim(),
+      'gender': 'other',
+      'seatNo': seat.trim(),
+    }).toList();
   }
 
   /// Resolve selected StopPoint object by name
@@ -310,81 +301,6 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
       if (point.lat != null) 'lat': point.lat,
       if (point.lng != null) 'lng': point.lng,
     };
-  }
-
-  Future<void> _directBookTicket() async {
-    setState(() { _isBooking = true; });
-
-    final seats = widget.selectedSeats.split(',').map((s) => s.trim()).toList();
-    final tempId = 'TEMP_${DateTime.now().millisecondsSinceEpoch}';
-
-    Map<String, dynamic> data = {
-      'scheduleId':       widget.busData.id,
-      'tempBookingId':    tempId,
-      'paymentId':        'TEST_TXN_${DateTime.now().millisecondsSinceEpoch}',
-      'transactionId':    'TEST_TXN_${DateTime.now().millisecondsSinceEpoch}',
-      'paymentMethod':    'ESEWA',
-      'bookedVia':        'APP',
-      'paymentAmount':    _finalPrice,
-      'originalAmount':   widget.totalPrice,
-      'seatNumbers':      seats,
-      'gateway':          'esewa',
-      'bookedFrom':       widget.busData.routeDetail.from,
-      'bookedTo':         widget.busData.routeDetail.to,
-      'bookedDepartureTime': widget.busData.departureTime,
-      'bookedArrivalTime':   widget.busData.arrivalTime,
-      'passengerDetails': _buildPassengerDetails(),
-      if (_buildBoardingPointMap() != null) 'boardingPoint': _buildBoardingPointMap(),
-      if (_buildDroppingPointMap() != null) 'droppingPoint': _buildDroppingPointMap(),
-      if (_isCouponApplied) 'couponCode': _couponController.text.trim(),
-      if (_isSmMoneyEnabled && _smMoneyApplied > 0) 'smMoneyToUse': _smMoneyApplied,
-    };
-
-    final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
-    final response = await ticketProvider.bookTicket(data);
-
-    setState(() { _isBooking = false; });
-
-    if (response.status) {
-      final ticketId = response.ticketId;
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.success,
-        animType: AnimType.scale,
-        title: 'Success',
-        desc: response.message,
-        btnOkOnPress: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => TicketScreen(
-                        ticketId: ticketId ?? '',
-                        selectedSeats: widget.selectedSeats,
-                        busData: widget.busData,
-                        name: widget.name,
-                        profilePic: widget.profilePic,
-                        role: widget.role,
-                      )));
-        },
-        btnOkText: 'Ticket',
-      ).show();
-    } else {
-      if (response.caseId != null && response.caseId!.isNotEmpty) {
-        DisputedPaymentDialog.show(
-          context,
-          message: response.message,
-          caseId: response.caseId!,
-        );
-      } else {
-        ToastService.showToast(
-          msg: response.message,
-          context: context,
-          type: ToastType.error,
-          title: 'Booking Failed',
-          timeInSecForIosWeb: 4,
-        );
-      }
-    }
   }
 
   Future<void> _fetchUserDetails() async {
@@ -511,135 +427,71 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
   // SM Money is applied/removed via the SmMoneySection toggle which updates
   // _isSmMoneyEnabled, _smMoneyApplied, and _gatewayPayable directly.
 
-// eSewa — two-phase atomic payment
-  _payThroughEsewa() async {
-    // Validation
-    if (_nameController.text.trim().isEmpty) {
-      ToastService.showToast(msg: "Please provide a primary contact name.", backgroundColor: Colors.red, context: context, type: ToastType.error);
-      return;
-    }
-    if (_phoneController.text.trim().isEmpty) {
-      ToastService.showToast(msg: "Please provide a primary phone number.", backgroundColor: Colors.red, context: context, type: ToastType.error);
-      return;
-    }
-    if (widget.busData.busDetail.boardingPoints.isNotEmpty && _selectedBoardingPoint == null) {
-      ToastService.showToast(msg: "Please select a boarding point before proceeding.", backgroundColor: Colors.red, context: context, type: ToastType.error);
-      return;
-    }
-
-    // Phase 1: prepareBooking — lock seats + get server-validated amount
-    setState(() { _isBooking = true; });
-
-    final seats = widget.selectedSeats.split(',').map((s) => s.trim()).toList();
-    final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
-
-    final PrepareBookingResponse prepareResp = await ticketProvider.prepareBooking({
-      'scheduleId':       widget.busData.id,
-      'seatNumbers':      seats,
-      'paymentAmount':    _finalPrice,
-      'originalAmount':   widget.totalPrice,
-      'bookedFrom':       widget.busData.routeDetail.from,
-      'bookedTo':         widget.busData.routeDetail.to,
-      'bookedDepartureTime': widget.busData.departureTime,
-      'bookedArrivalTime':   widget.busData.arrivalTime,
-      'passengerDetails': _buildPassengerDetails(),
-      if (_buildBoardingPointMap() != null) 'boardingPoint': _buildBoardingPointMap(),
-      if (_buildDroppingPointMap() != null) 'droppingPoint': _buildDroppingPointMap(),
-      if (_isCouponApplied) 'couponCode': _couponController.text.trim(),
-      if (_isSmMoneyEnabled && _smMoneyApplied > 0) 'smMoneyToUse': _smMoneyApplied,
-    });
-
-    setState(() { _isBooking = false; });
-
-    if (!prepareResp.status) {
-      ToastService.showToast(
-        msg: prepareResp.message.isNotEmpty
-            ? prepareResp.message
-            : 'Seats unavailable. Please select different seats.',
-        context: context,
-        type: ToastType.error,
-        title: 'Booking Failed',
-        timeInSecForIosWeb: 4,
-      );
-      return;
-    }
-
-    // Store server-validated values for Phase 2 (confirmBooking)
-    _tempBookingId       = prepareResp.tempBookingId;
-    _serverPaymentAmount = prepareResp.paymentAmount ?? _finalPrice;
-
-    // Update SM Money state from server-computed breakdown
-    setState(() {
-      _smMoneyBalance    = prepareResp.smMoneyBalance;
-      _smMoneyApplied    = prepareResp.smMoneyApplied;
-      _smMoneyMaxAllowed = prepareResp.maxSmMoneyAllowed;
-      _gatewayPayable    = prepareResp.gatewayAmount;
-      _isLoadingSmMoney  = false;
-    });
-
-    // Phase 2: Launch eSewa SDK with server-validated amount
+  Future<void> _restorePendingPayment() async {
     try {
-      EsewaFlutterSdk.initPayment(
-        esewaConfig: EsewaConfig(
-          environment: Environment.test,
-          clientId: EsewaKeys.clientId,
-          secretId: EsewaKeys.secretId,
-        ),
-        esewaPayment: EsewaPayment(
-          productId: _tempBookingId ?? 'ESEWA_${DateTime.now().millisecondsSinceEpoch}',
-          productName: widget.busData.busDetail.busName,
-          // Use server-validated amount — NOT locally calculated price
-          productPrice: _serverPaymentAmount.toString(),
-          callbackUrl: 'https://developer.esewa.com.np',
-        ),
-        onPaymentSuccess: (EsewaPaymentSuccessResult data) {
-          debugPrint(":::ESEWA SUCCESS::: => ${data.refId}");
-          verifyTransactionStatus(data.refId);
-        },
-        onPaymentFailure: (data) {
-          debugPrint(":::ESEWA FAILURE::: => $data");
-          ToastService.showToast(
-            msg: 'Payment was not completed. Please try again.',
-            context: context,
-            type: ToastType.error,
-            title: 'Payment Failed',
-            timeInSecForIosWeb: 3,
-          );
-        },
-        onPaymentCancellation: (data) {
-          debugPrint(":::ESEWA CANCELLATION::: => $data");
-          // Clear temp booking state
-          setState(() {
-            _tempBookingId = null;
-            _serverPaymentAmount = null;
-          });
-        },
-      );
-    } catch (e) {
-      final msg = e.toString();
-      if (msg.contains('MissingPluginException')) {
-        debugPrint("eSewa SDK not available on this platform. Run on Android/iOS device.");
-        ToastService.showToast(
-          msg: "eSewa payment is only supported on Android & iOS devices.",
-          context: context,
-          type: ToastType.info,
-          title: "Mobile Only",
-          timeInSecForIosWeb: 4,
-        );
-      } else {
-        debugPrint("ESEWA EXCEPTION: $e");
-        ToastService.showToast(
-          msg: "Could not launch eSewa. Please try again.",
-          context: context,
-          type: ToastType.error,
-          title: "Payment Error",
-          timeInSecForIosWeb: 3,
-        );
+      final pending = await _esewaCheckout.discoverPendingReference();
+      if (!mounted || pending == null) return;
+      setState(() => _pendingPayment = pending);
+      await verifyTransactionStatus(pending);
+    } catch (_) {
+      // The saved reference is retained when offline or signed out.
+    }
+  }
+
+  Future<void> _payThroughEsewa() async {
+    if (_isBooking) return;
+    if (_pendingPayment != null) return verifyTransactionStatus(_pendingPayment!);
+    if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty ||
+        _selectedBoardingPoint == null || _selectedDroppingPoint == null) {
+      ToastService.showToast(msg: 'Enter contact details and select boarding and dropping points.', context: context, type: ToastType.error);
+      return;
+    }
+    setState(() => _isBooking = true);
+    try {
+      final pending = await _esewaCheckout.discoverPendingReference();
+      if (!mounted) return;
+      if (pending != null) {
+        setState(() => _pendingPayment = pending);
+        await verifyTransactionStatus(pending);
+        return;
       }
+      final provider = Provider.of<TicketProvider>(context, listen: false);
+      final prepared = await provider.prepareBooking({
+        'scheduleId': widget.busData.id,
+        'seatNumbers': widget.selectedSeats.split(',').map((s) => s.trim()).toList(),
+      });
+      if (!mounted) return;
+      if (!prepared.status || prepared.tempBookingId == null) throw StateError(prepared.message);
+      String? pin;
+      if (_isSmMoneyEnabled && _smMoneyApplied > 0) {
+        final entered = await WalletPinSheet.show(context, mode: WalletPinMode.verify);
+        if (!mounted || entered is! String || entered.isEmpty) return;
+        pin = entered;
+      }
+      final checkout = await _esewaCheckout.initiate({
+        'tempBookingId': prepared.tempBookingId,
+        'passengerDetails': _buildPassengerDetails(),
+        'boardingPoint': _buildBoardingPointMap(),
+        'droppingPoint': _buildDroppingPointMap(),
+        if (_isCouponApplied) 'couponCode': _couponController.text.trim(),
+        'smMoneyToUse': _isSmMoneyEnabled ? _smMoneyApplied : 0,
+        if (pin != null) 'walletPin': pin,
+      });
+      if (!mounted) return;
+      setState(() => _pendingPayment = checkout.reference);
+      final responseData = await Navigator.push<String>(context,
+        MaterialPageRoute(builder: (_) => EsewaCheckoutScreen(checkout: checkout)));
+      if (!mounted) return;
+      await verifyTransactionStatus(checkout.reference, responseData: responseData);
+    } catch (_) {
+      if (mounted) ToastService.showToast(msg: 'Payment could not finish. Check payment status before trying again.', context: context, type: ToastType.error);
+    } finally {
+      if (mounted) setState(() => _isBooking = false);
     }
   }
 
   Future<void> _payThroughWallet() async {
+    if (_isBooking) return;
     // Validation
     if (_nameController.text.trim().isEmpty) {
       ToastService.showToast(msg: "Please provide a primary contact name.", backgroundColor: Colors.red, context: context, type: ToastType.error);
@@ -672,6 +524,13 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
     final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
 
     try {
+      final pending = await _esewaCheckout.discoverPendingReference();
+      if (!mounted) return;
+      if (pending != null) {
+        setState(() => _pendingPayment = pending);
+        await verifyTransactionStatus(pending);
+        return;
+      }
       final PrepareBookingResponse prepareResp = await ticketProvider.prepareBooking({
         'scheduleId':       widget.busData.id,
         'seatNumbers':      seats,
@@ -688,6 +547,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         if (_isSmMoneyEnabled && _smMoneyApplied > 0) 'smMoneyToUse': _smMoneyApplied,
       });
 
+      if (!mounted) return;
       if (!prepareResp.status) {
         setState(() { _isBooking = false; });
         ToastService.showToast(
@@ -713,10 +573,9 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
       _gatewayPayable    = prepareResp.gatewayAmount;
 
       // Phase 1.5: Collect Wallet PIN for server-side verification
-      setState(() { _isBooking = false; });
-      
       final walletPin = await WalletPinSheet.show(context, mode: WalletPinMode.verify);
       
+      if (!mounted) return;
       if (walletPin == null || walletPin is! String || walletPin.isEmpty) {
         ToastService.showToast(
           msg: "Payment cancelled.",
@@ -756,6 +615,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
       };
 
       final response = await ticketProvider.confirmBooking(confirmData);
+      if (!mounted) return;
 
       setState(() {
         _isBooking = false;
@@ -799,93 +659,43 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         }
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() { _isBooking = false; });
       ToastService.showToast(
-        msg: "An unexpected error occurred: $e",
+        msg: "Unable to confirm payment. Check your tickets before trying again.",
         context: context,
         type: ToastType.error,
         title: "Booking Error",
         timeInSecForIosWeb: 4,
       );
+    } finally {
+      if (mounted) setState(() => _isBooking = false);
     }
   }
 
-  void verifyTransactionStatus(String refId) async {
-    setState(() { _isBooking = true; });
-
-    final seats = widget.selectedSeats.split(',').map((s) => s.trim()).toList();
-
-    // Use server-validated amount from prepareBooking (not locally calculated)
-    // This ensures eSewa verify on backend matches the amount we sent to eSewa SDK
-    final int confirmedAmount = _serverPaymentAmount ?? _finalPrice;
-    final String confirmedTempId = _tempBookingId ?? 'ESEWA_${DateTime.now().millisecondsSinceEpoch}';
-
-    Map<String, dynamic> data = {
-      'scheduleId':       widget.busData.id,
-      'tempBookingId':    confirmedTempId,
-      'paymentId':        refId,          // eSewa refId — verified server-side
-      'transactionId':    refId,
-      'paymentMethod':    'ESEWA',
-      'bookedVia':        'APP',
-      'paymentAmount':    confirmedAmount,
-      'originalAmount':   widget.totalPrice,
-      'seatNumbers':      seats,
-      'gateway':          'esewa',
-      'bookedFrom':       widget.busData.routeDetail.from,
-      'bookedTo':         widget.busData.routeDetail.to,
-      'bookedDepartureTime': widget.busData.departureTime,
-      'bookedArrivalTime':   widget.busData.arrivalTime,
-      'passengerDetails': _buildPassengerDetails(),
-      if (_buildBoardingPointMap() != null) 'boardingPoint': _buildBoardingPointMap(),
-      if (_buildDroppingPointMap() != null) 'droppingPoint': _buildDroppingPointMap(),
-      if (_isCouponApplied) 'couponCode': _couponController.text.trim(),
-      if (_isSmMoneyEnabled && _smMoneyApplied > 0) 'smMoneyToUse': _smMoneyApplied,
-    };
-
-    final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
-    final response = await ticketProvider.confirmBooking(data);
-
-    setState(() {
-      _isBooking = false;
-      _tempBookingId = null;        // clear temp booking state
-      _serverPaymentAmount = null;
-    });
-
-    if (response.status) {
-      final ticketId = response.ticketId;
-      // Navigate directly to the ticket screen — no intermediate dialog needed.
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TicketScreen(
-              ticketId: ticketId ?? '',
-              selectedSeats: widget.selectedSeats,
-              busData: widget.busData,
-              name: widget.name,
-              profilePic: widget.profilePic,
-              role: widget.role,
-              scratchCardId: response.scratchCardId,
-            ),
-          ),
-        );
-      }
-    } else {
-      if (response.caseId != null && response.caseId!.isNotEmpty) {
-        DisputedPaymentDialog.show(
-          context,
-          message: response.message,
-          caseId: response.caseId!,
-        );
+  Future<void> verifyTransactionStatus(String reference, {String? responseData}) async {
+    if (!mounted) return;
+    setState(() => _isBooking = true);
+    try {
+      final response = await _esewaCheckout.finalize(reference, responseData: responseData);
+      final pending = await _esewaCheckout.pendingReference();
+      if (!mounted) return;
+      setState(() => _pendingPayment = pending);
+      if (response.status) {
+        final provider = Provider.of<TicketProvider>(context, listen: false);
+        await provider.refreshTickets();
+        if (!mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MyTripScreen()));
+      } else if (response.caseId?.isNotEmpty == true) {
+        DisputedPaymentDialog.show(context, message: response.message, caseId: response.caseId!);
       } else {
-        ToastService.showToast(
-          msg: response.message,
-          context: context,
-          type: ToastType.error,
-          title: 'Booking Failed',
-          timeInSecForIosWeb: 4,
-        );
+        ToastService.showToast(msg: response.message.isEmpty ? 'Payment is still being checked. Do not pay again.' : response.message,
+          context: context, type: ToastType.info);
       }
+    } catch (_) {
+      if (mounted) ToastService.showToast(msg: 'Unable to check payment yet. Your reference is saved; do not pay again.', context: context, type: ToastType.info);
+    } finally {
+      if (mounted) setState(() => _isBooking = false);
     }
   }
 
@@ -1221,7 +1031,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
                         ],
                       ),
                       GestureDetector(
-                        onTap: _isBooking ? null : (_selectedPaymentMethod == 'wallet' ? _payThroughWallet : _payThroughEsewa),
+                        onTap: _isBooking ? null : (_pendingPayment != null ? _payThroughEsewa : (_selectedPaymentMethod == 'wallet' ? _payThroughWallet : _payThroughEsewa)),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
@@ -1233,7 +1043,7 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
                           child: Row(
                             children: [
                               Text(
-                                _isBooking ? "Processing..." : "Pay & Book",
+                                _isBooking ? "Processing..." : (_pendingPayment != null ? "Check payment status" : "Pay & Book"),
                                 style: TextStyle(
                                   color: _isBooking ? AppTheme.textSecondary : const Color(0xFF003D38),
                                   fontSize: 16,
