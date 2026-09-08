@@ -46,8 +46,10 @@ class TicketHistoryData {
     return TicketHistoryData(
       booking: Booking.fromJson(json['booking']),
       trip: json['trip'] != null ? Trip.fromJson(json['trip']) : null,
-      payment: json['payment'] != null ? Payment.fromJson(json['payment']) : null,
-      refund: json['refund'] != null ? RefundInfo.fromJson(json['refund']) : null,
+      payment:
+          json['payment'] != null ? Payment.fromJson(json['payment']) : null,
+      refund:
+          json['refund'] != null ? RefundInfo.fromJson(json['refund']) : null,
     );
   }
 
@@ -280,6 +282,7 @@ class RefundInfo {
   final String? reason;
   final String? remarks;
   final String? refundGateway;
+  final String? destination;
 
   RefundInfo({
     required this.refundAmount,
@@ -292,6 +295,7 @@ class RefundInfo {
     this.reason,
     this.remarks,
     this.refundGateway,
+    this.destination,
   });
 
   factory RefundInfo.fromJson(Map<String, dynamic> json) {
@@ -306,6 +310,7 @@ class RefundInfo {
       reason: json['reason'],
       remarks: json['remarks'],
       refundGateway: json['refundGateway'],
+      destination: json['destination'],
     );
   }
 
@@ -321,6 +326,7 @@ class RefundInfo {
       'reason': reason,
       'remarks': remarks,
       'refundGateway': refundGateway,
+      'destination': destination,
     };
   }
 }

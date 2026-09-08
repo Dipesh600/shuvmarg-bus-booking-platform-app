@@ -7,7 +7,8 @@ class ApiEndpoints {
   //   DevTarget.androidEmu   → 10.0.2.2:7012   (Android Studio emulator)
   //   DevTarget.physicalDevice → LAN IP        (real phone on same Wi-Fi)
   //   DevTarget.production   → api.shuvmarg.com (live server)
-  static const _env = DevTarget.physicalDevice;
+  static const _env = DevTarget
+      .macDesktop; // adb reverse tcp:7012 tcp:7012 tunnels USB → Mac localhost
 
   static String get baseUrl {
     switch (_env) {
@@ -16,7 +17,7 @@ class ApiEndpoints {
       case DevTarget.androidEmu:
         return 'http://10.0.2.2:7012';
       case DevTarget.physicalDevice:
-        return 'http://10.53.238.245:7012'; // Your Mac's LAN IP over hotspot
+        return 'http://10.232.45.245:7012'; // Your Mac's LAN IP over hotspot
       case DevTarget.production:
         return 'https://api.shuvmarg.com';
     }
@@ -49,14 +50,19 @@ class ApiEndpoints {
   static String get confirmBooking => "$baseUrl$ticket/confirmBooking";
   static String get bookTicket => "$baseUrl$ticket/bookTicket";
   static String get bookingHistory => "$baseUrl$ticket/getMyTicketHistory";
-  static String get validateYatraPoints => "$baseUrl$ticket/validateYatraPoints";
+  static String get validateYatraPoints =>
+      "$baseUrl$ticket/validateYatraPoints";
   static String get cancelticket => "$baseUrl$ticket/cancelTicket";
   static String get cancelEstimate => "$baseUrl$ticket/cancelEstimate";
+  static String get selectRefundDestination =>
+      "$baseUrl$ticket/selectRefundDestination";
 
   // Push Notification
   static String get storedeviceinfo => "$baseUrl$pushnoti/getDeviceInfo";
-  static String get mylocalnotifications => "$baseUrl$pushnoti/my-local-notifications";
-  static String get markNotificationAsRead => "$baseUrl$pushnoti/markNotificationAsRead";
+  static String get mylocalnotifications =>
+      "$baseUrl$pushnoti/my-local-notifications";
+  static String get markNotificationAsRead =>
+      "$baseUrl$pushnoti/markNotificationAsRead";
   static String get deleteNotification => "$baseUrl$pushnoti/delete";
 
   // Validate Coupon
@@ -66,14 +72,16 @@ class ApiEndpoints {
   static String get getCoupons => "$baseUrl$api/coupons/all";
 
   // Get ALL Coupons including expired (See All page)
-  static String get getAllCouponsWithExpired => "$baseUrl$api/coupons/all-with-expired";
+  static String get getAllCouponsWithExpired =>
+      "$baseUrl$api/coupons/all-with-expired";
 
   // Get Reward History
   static String get getRewardHistory => "$baseUrl$api/ticket/getMyYatraHistory";
 
   // Feed back
   static String get feedback => "$baseUrl$api/reviews/createReview";
-  static String getFleetReviews(String fleetId) => "$baseUrl$api/reviews/fleet/$fleetId";
+  static String getFleetReviews(String fleetId) =>
+      "$baseUrl$api/reviews/fleet/$fleetId";
 
   // Referal
   static String get refralDashboard => "$baseUrl$api/referral/dashboard";

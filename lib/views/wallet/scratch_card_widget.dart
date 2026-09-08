@@ -6,6 +6,7 @@ class ScratchCardWidget extends StatefulWidget {
   final String cardId;
   final double amount;
   final bool isScratched;
+  final String? imageUrl;
   final VoidCallback onScratchComplete;
 
   const ScratchCardWidget({
@@ -13,6 +14,7 @@ class ScratchCardWidget extends StatefulWidget {
     required this.cardId,
     required this.amount,
     this.isScratched = false,
+    this.imageUrl,
     required this.onScratchComplete,
   });
 
@@ -90,6 +92,9 @@ class _ScratchCardWidgetState extends State<ScratchCardWidget> {
                     brushSize: 30,
                     threshold: 50,
                     color: accentLime, 
+                    image: widget.imageUrl != null 
+                        ? Image.network(widget.imageUrl!, fit: BoxFit.cover) 
+                        : null,
                     onChange: (value) {
                       setState(() {
                         scratchProgress = value;

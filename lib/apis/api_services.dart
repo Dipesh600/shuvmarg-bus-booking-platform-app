@@ -13,6 +13,10 @@ class ApiService {
   ApiService() {
     _dio.options.connectTimeout = const Duration(seconds: 15);
     _dio.options.receiveTimeout = const Duration(seconds: 15);
+    // Identify this app as the passenger client to the backend.
+    // Used for cross-role detection (e.g., a bus owner logging into the
+    // passenger app). Never used for authorization — only role enrichment.
+    _dio.options.headers['X-App-Source'] = 'passenger';
     
     _dio.interceptors.add(InterceptorsWrapper(
       onError: (DioException e, handler) async {
@@ -74,10 +78,10 @@ class ApiService {
     if (kDebugMode) {
       _dio.interceptors.add(LogInterceptor(
         request: true,
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: true,
-        responseBody: true,
+        requestHeader: false,
+        requestBody: false,
+        responseHeader: false,
+        responseBody: false,
         error: true,
       ));
     }
@@ -115,7 +119,7 @@ class ApiService {
         print("seardjdjdj ${response.statusCode}");
       }
       if (kDebugMode) {
-        print("seardjdjdj ${response.data}");
+        print("Request completed");
       }
       if (response.statusCode == 200) {
         return response.data;
@@ -150,17 +154,17 @@ class ApiService {
         data: data,
       );
       if (kDebugMode) {
-        print("Response status: ${response.data}");
+        print("Response status: ${response.statusCode}");
       }
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300) {
         return response.data;
       } else {
         throw Exception(
             'Failed to load data: ${response.statusCode} ${response.statusMessage}');
       }
     } catch (error) {
-      throw Exception('Error in fetching data: $error');
+      rethrow;
     }
   }
 
@@ -234,7 +238,7 @@ class ApiService {
         print("markasread ${response.statusCode}");
       }
       if (kDebugMode) {
-        print("markasread ${response.data}");
+        print("Request completed");
         print("markasread ${response.statusCode}");
       }
 
@@ -270,7 +274,7 @@ class ApiService {
         data: data,
       );
       if (kDebugMode) {
-        print("Response status: ${response.data}");
+        print("Response status: ${response.statusCode}");
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -354,7 +358,7 @@ class ApiService {
 
     if (kDebugMode) {
       print("Multipart request: $endpoint");
-      print("Fields: $fields");
+      print("Multipart fields omitted");
     }
 
     try {
@@ -370,7 +374,7 @@ class ApiService {
 
       if (kDebugMode) {
         print("Multipart response status: ${response.statusCode}");
-        print("Multipart response body: ${response.data}");
+        print("Multipart response body omitted");
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -408,7 +412,7 @@ class ApiService {
         print("markasread ${response.statusCode}");
       }
       if (kDebugMode) {
-        print("markasread ${response.data}");
+        print("Request completed");
         print("markasread ${response.statusCode}");
       }
 
