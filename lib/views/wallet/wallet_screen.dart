@@ -3,8 +3,6 @@ import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 import '../../utils/api_endpoints.dart';
 import '../../apis/api_services.dart';
-import '../../utils/app_theme.dart';
-import 'wallet_pin_sheet.dart';
 import 'wallet_faq_sheet.dart';
 import 'scratch_card_widget.dart';
 
@@ -18,7 +16,6 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderStateMixin {
   bool _isLoading = true;
   bool _isLoadingMore = false;
-  bool _isPinSet = false;
   double _balance = 0.0;
   List<dynamic> _transactions = [];
   List<dynamic> _scratchCards = [];
@@ -76,7 +73,6 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
         final pagination = data['data']['pagination'];
         if (!mounted) return;
         setState(() {
-          _isPinSet = data['data']['isPinSet'] == true;
           _balance = (data['data']['balance'] as num).toDouble();
           _transactions = data['data']['activities'] ?? [];
           _hasMore = pagination != null ? (pagination['hasMore'] ?? false) : false;
@@ -266,13 +262,6 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                           }
                         }
 
-                        // If the user hasn't set up their wallet PIN,
-                        // force them through the setup flow — regardless of
-                        // whether they already have a balance (legacy users).
-                        if (!_isPinSet) {
-                          return _buildEmptyState(context);
-                        }
-
                         return SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.only(
@@ -436,6 +425,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                                     cardId: card['_id'],
                                     amount: (card['amount'] as num).toDouble(),
                                     isScratched: card['status'] == 'SCRATCHED',
+                                    imageUrl: card['imageUrl'],
                                     onScratchComplete: () {
                                       _scratchCard(card['_id']);
                                     },
@@ -725,96 +715,4 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
-    const primaryBg = Color(0xFF003D38);
-    const accentLime = Color(0xFFD3D925);
-    const textSecondary = Color(0xFFB7C7C3);
-
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(
-        minHeight: MediaQuery.of(context).size.height,
-      ),
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/wallet_nostate.png'),
-          fit: BoxFit.cover,
-          alignment: Alignment.topCenter,
-        ),
-      ),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: Column(
-          children: [
-            // Spacer to push content exactly below the baked-in wallet illustration and text
-            SizedBox(height: MediaQuery.of(context).size.height * 0.58),
-                
-                // Features Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildFeatureItem(Icons.bolt_rounded, 'Instant\nRefunds', accentLime, textSecondary),
-                    Container(width: 1, height: 40, color: Colors.white.withOpacity(0.1)),
-                    _buildFeatureItem(Icons.shield_rounded, '100% Secure\nTransactions', accentLime, textSecondary),
-                    Container(width: 1, height: 40, color: Colors.white.withOpacity(0.1)),
-                    _buildFeatureItem(Icons.account_balance_wallet_rounded, 'Easy\nPayments', accentLime, textSecondary),
-                  ],
-                ),
-                const SizedBox(height: 40),
-                
-                // Enable Wallet Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final success = await WalletPinSheet.show(context, mode: WalletPinMode.setup);
-                      if (success == true) {
-                        // Refresh the screen completely to show the active wallet state
-                        _fetchWalletDetails();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentLime,
-                      foregroundColor: primaryBg,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      _balance > 0
-                          ? 'Secure Your Wallet'
-                          : 'Enable Wallet',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-              ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeatureItem(IconData icon, String text, Color iconColor, Color textColor) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: iconColor, size: 28),
-          const SizedBox(height: 12),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              height: 1.3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

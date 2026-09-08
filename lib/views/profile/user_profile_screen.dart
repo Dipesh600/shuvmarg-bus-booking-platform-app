@@ -19,7 +19,6 @@ import 'package:sumarg/views/support/terms_condition_screen.dart';
 import 'package:sumarg/views/widgets/loading_widgets/profile_loading.dart';
 import 'package:sumarg/providers/profile_provider.dart';
 import 'package:sumarg/views/wallet/wallet_screen.dart';
-import 'package:sumarg/views/wallet/wallet_pin_sheet.dart';
 import 'package:sumarg/views/tickets/my_trip_screen.dart';
 import 'package:sumarg/providers/notification_provider.dart';
 import 'package:sumarg/views/notifications/notification_history_screen.dart';
@@ -552,7 +551,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     }
 
                     if (profile.isWalletEnabled) {
-                      // ✅ PIN is set — show full balance
+                      // Wallet exists — show the ledger-backed balance.
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
@@ -593,7 +592,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     }
 
                     if (balance != null && balance > 0) {
-                      // ⚠️ Legacy user — has balance but no PIN
+                      // Compatibility state while older wallet responses expire.
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -629,7 +628,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       );
                     }
 
-                    // 🆕 New user — no balance, no PIN
+                    // Wallet details have not been activated yet.
                     return const FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
@@ -679,7 +678,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                             profile.isWalletEnabled
                                 ? 'View History'
                                 : (balance != null && balance > 0)
-                                    ? 'Secure Wallet'
+                                    ? 'View Wallet'
                                     : 'Enable Wallet',
                             style: const TextStyle(
                               fontSize: 13,

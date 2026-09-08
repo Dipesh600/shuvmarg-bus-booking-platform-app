@@ -124,7 +124,7 @@ class ProfileProvider extends ChangeNotifier {
       final data = await ApiService().getDataWithToken(endpoint);
       if (data != null && data['status'] == true) {
         _walletBalance = (data['data']['balance'] as num).toDouble();
-        _isWalletEnabled = data['data']['isPinSet'] == true;
+        _isWalletEnabled = data['data']['walletStatus'] != null;
       } else {
         _walletBalance ??= 0.0;
         _isWalletEnabled = false;
@@ -166,7 +166,7 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Called after the user successfully sets their wallet PIN.
+  /// Called after the wallet becomes available for this account.
   void markWalletEnabled() {
     _isWalletEnabled = true;
     notifyListeners();

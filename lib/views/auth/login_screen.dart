@@ -15,6 +15,7 @@ import 'package:sumarg/widgets/primary_button.dart';
 import 'package:sumarg/widgets/custom_text_field.dart';
 import '../../controllers/auth_controller/auth_controller.dart';
 import '../../controllers/auth_controller/login_provider.dart';
+import '../../models/api_response.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -64,6 +65,43 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           await NavigationService.navigateAfterLogin(context);
         }
+      } else if (response is ApiResponse && response.isAccountRestricted) {
+        // ── BANNED / SUSPENDED / DELETED ──
+        // Show a dedicated dialog with reason and contact info
+        if (mounted) {
+          final isBanned = response.errorCode == 'ACCOUNT_BANNED';
+          final isSuspended = response.errorCode == 'ACCOUNT_SUSPENDED';
+          final title = isBanned
+              ? 'Account Banned'
+              : isSuspended
+                  ? 'Account Suspended'
+                  : 'Account Deactivated';
+          final icon = isBanned
+              ? Icons.block_rounded
+              : isSuspended
+                  ? Icons.pause_circle_outline_rounded
+                  : Icons.person_off_rounded;
+
+          final contactEmail = response.contact?['email'] ?? 'support@shuvmarg.com';
+          final contactPhone = response.contact?['phone'] ?? '+977-9800000000';
+
+          String bodyMessage = response.reason != null && response.reason!.isNotEmpty
+              ? 'Reason: ${response.reason}\n\n'
+              : '';
+          bodyMessage += 'If you believe this is an error, please contact us:\n'
+              '📧 $contactEmail\n'
+              '📞 $contactPhone';
+
+          DialogService.showCustomDialog(
+            context: context,
+            type: DialogType.warning,
+            title: title,
+            message: bodyMessage,
+            primaryButtonText: 'OK',
+            onPrimaryPressed: () {},
+            customPrimaryIcon: icon,
+          );
+        }
       } else {
         if (mounted) {
           DialogService.showCustomDialog(
@@ -96,6 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

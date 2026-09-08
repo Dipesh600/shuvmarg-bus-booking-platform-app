@@ -42,7 +42,10 @@ class TokenHandler {
 
       final response = await http.post(
         Uri.parse(ApiEndpoints.refreshToken),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-Source': 'passenger',
+        },
         body: json.encode({'refreshToken': storedRefreshToken}),
       );
 

@@ -22,26 +22,38 @@ class AuthController {
     try {
       final response = await http.post(
         Uri.parse(loginUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-Source': 'passenger',
+        },
         body: json.encode({'emailOrPhone': email, 'password': password}),
       );
       
       final responseData = json.decode(response.body);
       bool isSuccess = responseData['success'] ?? responseData['status'] ?? false;
-      String message = responseData['message'] ?? 'Login failed';
 
       if (response.statusCode == 200 && isSuccess) {
         final loginResponse = LoginResponse.fromJson(responseData);
         await _saveLoginResponse(loginResponse);
         return loginResponse;
       } else {
-        // Return as ApiResponse to capture the error message
-        return ApiResponse(success: false, message: message);
+        // Parse full response to capture errorCode, reason, and contact info
+        return ApiResponse.fromJson({
+          'success': false,
+          'message': responseData['message'] ?? 'Login failed',
+          if (responseData['errorCode'] != null)
+            'errorCode': responseData['errorCode'],
+          if (responseData['reason'] != null)
+            'reason': responseData['reason'],
+          if (responseData['contact'] != null)
+            'contact': responseData['contact'],
+        });
       }
     } catch (error) {
       return ApiResponse(success: false, message: "Network error: $error");
     }
   }
+
 
   Future<void> _saveLoginResponse(LoginResponse loginResponse) async {
     final SharedPreferences prefs =
