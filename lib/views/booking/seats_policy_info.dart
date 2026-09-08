@@ -47,7 +47,7 @@ class SeatsPolicyInfo extends StatelessWidget {
               icon: Icons.cancel_schedule_send_rounded,
               title: "Cancellation Policy",
               description:
-                  "Cancellations made 24 hours before departure are eligible for a full refund. Cancellations within 24 hours incur a 50% penalty. No refunds for no-shows.",
+                  "Your cancellation estimate is calculated from the policy saved with the booking and shown before you confirm. Cancelling applies to the complete booking. Eligible refunds can be sent to Shuvmarg Money or the original payment source.",
             ),
             _buildPolicyItem(
               icon: Icons.payments_rounded,
@@ -80,9 +80,9 @@ class SeatsPolicyInfo extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.accentLime.withOpacity(0.1),
+                color: AppTheme.accentLime.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.accentLime.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -93,7 +93,7 @@ class SeatsPolicyInfo extends StatelessWidget {
                       "Note: Policies are subject to change. Please check our website for the latest updates.",
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppTheme.textSecondary.withOpacity(0.9),
+                        color: AppTheme.textSecondary.withValues(alpha: 0.9),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -112,7 +112,7 @@ class SeatsPolicyInfo extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppTheme.primary.withOpacity(0.15),
+        color: AppTheme.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.stroke, width: 1),
       ),
@@ -138,7 +138,7 @@ class SeatsPolicyInfo extends StatelessWidget {
                   "Please read these terms carefully before finalizing your booking. By proceeding, you agree to these conditions.",
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.textSecondary.withOpacity(0.8),
+                    color: AppTheme.textSecondary.withValues(alpha: 0.8),
                     height: 1.5,
                   ),
                 ),
@@ -163,7 +163,7 @@ class SeatsPolicyInfo extends StatelessWidget {
         border: Border.all(color: AppTheme.stroke, width: 1),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryDark.withOpacity(0.4),
+            color: AppTheme.primaryDark.withValues(alpha: 0.4),
             blurRadius: 30,
             offset: const Offset(0, 10),
           ),
@@ -182,9 +182,9 @@ class SeatsPolicyInfo extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.accentLime.withOpacity(0.15),
+                    color: AppTheme.accentLime.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.accentLime.withOpacity(0.3), width: 1),
+                    border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.3), width: 1),
                   ),
                   child: Icon(
                     icon,
