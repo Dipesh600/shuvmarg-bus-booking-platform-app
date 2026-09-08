@@ -110,7 +110,8 @@ class TicketController {
   ///
   /// On success, also returns tempBookingId which ties the seat lock to
   /// the subsequent confirmBooking call.
-  Future<PrepareBookingResponse> prepareBooking(Map<String, dynamic> data) async {
+  Future<PrepareBookingResponse> prepareBooking(
+      Map<String, dynamic> data) async {
     final ApiService apiService = ApiService();
     final String url = ApiEndpoints.prepareBooking;
     try {
@@ -119,7 +120,7 @@ class TicketController {
           response is Map<String, dynamic> ? response : {});
     } catch (error) {
       return PrepareBookingResponse(
-        status:  false,
+        status: false,
         message: ErrorHandler.clean(error),
       );
     }
@@ -256,8 +257,27 @@ class TicketController {
     }
   }
 
+  Future<ForAllResponse> selectRefundDestination(
+      Map<String, dynamic> data) async {
+    try {
+      final response = await ApiService()
+          .postDataWithToken(ApiEndpoints.selectRefundDestination, data);
+      return ForAllResponse.fromJson(response);
+    } on DioException catch (e) {
+      final value = e.response?.data;
+      final message = value is Map && value['message'] != null
+          ? value['message'].toString()
+          : 'Failed to save the refund destination.';
+      return ForAllResponse(status: false, message: message);
+    } catch (_) {
+      return ForAllResponse(
+          status: false, message: 'Failed to save the refund destination.');
+    }
+  }
+
   // Get cancel estimate (refund breakdown preview)
-  Future<CancelEstimateResponse> getCancelEstimate(Map<String, dynamic> data) async {
+  Future<CancelEstimateResponse> getCancelEstimate(
+      Map<String, dynamic> data) async {
     final ApiService apiService = ApiService();
     final String url = ApiEndpoints.cancelEstimate;
     try {

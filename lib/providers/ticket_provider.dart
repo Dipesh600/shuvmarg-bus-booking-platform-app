@@ -51,7 +51,8 @@ class TicketProvider extends ChangeNotifier {
 
   /// Phase 1 of atomic booking: prepareBooking.
   /// Locks seats + returns server-validated paymentAmount.
-  Future<PrepareBookingResponse> prepareBooking(Map<String, dynamic> data) async {
+  Future<PrepareBookingResponse> prepareBooking(
+      Map<String, dynamic> data) async {
     return await _ticketController.prepareBooking(data);
   }
 
@@ -68,7 +69,15 @@ class TicketProvider extends ChangeNotifier {
     return res;
   }
 
-  Future<CancelEstimateResponse> getCancelEstimate(Map<String, dynamic> data) async {
+  Future<ForAllResponse> selectRefundDestination(
+      Map<String, dynamic> data) async {
+    final result = await _ticketController.selectRefundDestination(data);
+    if (result.status) await refreshTickets();
+    return result;
+  }
+
+  Future<CancelEstimateResponse> getCancelEstimate(
+      Map<String, dynamic> data) async {
     return await _ticketController.getCancelEstimate(data);
   }
 
@@ -146,7 +155,8 @@ class TicketProvider extends ChangeNotifier {
     try {
       final results = await Future.wait([
         _ticketController.ticketHistoryWithStatus({}),
-        if (showLoading || forceRefresh) Future.delayed(const Duration(milliseconds: 500)),
+        if (showLoading || forceRefresh)
+          Future.delayed(const Duration(milliseconds: 500)),
       ]);
       final result = results.first as Map<String, dynamic>?;
 

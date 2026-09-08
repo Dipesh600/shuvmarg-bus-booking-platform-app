@@ -14,6 +14,8 @@ import 'package:provider/provider.dart';
 import 'package:sumarg/providers/ticket_provider.dart';
 import 'package:sumarg/models/cancel_estimate_response.dart';
 import '../../models/trip_data.dart';
+import '../../models/ticket_history_response.dart';
+import 'refund_destination_dialog.dart';
 
 class TicketDetailScreen extends StatefulWidget {
   final TripData tripData;
@@ -89,12 +91,15 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   ),
                   // Status badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(widget.tripData.status).withOpacity(0.12),
+                      color: _getStatusColor(widget.tripData.status)
+                          .withOpacity(0.12),
                       borderRadius: BorderRadius.circular(32),
                       border: Border.all(
-                        color: _getStatusColor(widget.tripData.status).withOpacity(0.3),
+                        color: _getStatusColor(widget.tripData.status)
+                            .withOpacity(0.3),
                         width: 1,
                       ),
                     ),
@@ -121,9 +126,11 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                     TicketCardWidget(
                       ticketData: ticketData,
                       qrCodeWidget: QRCodeWidget(
-                        qrData: '${widget.tripData.ticketId}_${widget.tripData.tripId}',
+                        qrData:
+                            '${widget.tripData.ticketId}_${widget.tripData.tripId}',
                         size: 120.0,
-                        description: 'Show this QR to the conductor for verification',
+                        description:
+                            'Show this QR to the conductor for verification',
                       ),
                     ),
 
@@ -176,7 +183,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 0,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  textStyle: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 14),
                 ),
               ),
             ),
@@ -193,7 +201,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  textStyle: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
             ),
@@ -220,7 +229,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.cancel_outlined, size: 18, color: AppTheme.error),
+                    Icon(Icons.cancel_outlined,
+                        size: 18, color: AppTheme.error),
                     SizedBox(width: 8),
                     Text(
                       'Cancel Ticket',
@@ -334,7 +344,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
               ),
               // Status badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(32),
@@ -364,10 +375,12 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             ),
             child: Column(
               children: [
-                _buildRefundRow('Ticket Fare', 'NPR ${refund.originalAmount}', AppTheme.textPrimary),
+                _buildRefundRow('Ticket Fare', 'NPR ${refund.originalAmount}',
+                    AppTheme.textPrimary),
                 if (refund.cancellationCharge > 0) ...[
                   const SizedBox(height: 8),
-                  _buildRefundRow('Cancellation Fee', '- NPR ${refund.cancellationCharge}', AppTheme.error),
+                  _buildRefundRow('Cancellation Fee',
+                      '- NPR ${refund.cancellationCharge}', AppTheme.error),
                 ],
                 Container(
                   margin: const EdgeInsets.symmetric(vertical: 10),
@@ -409,11 +422,29 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             ),
           if (refund.status == 'pending')
             _buildTimelineItem(
-              'Awaiting Processing',
-              'Expected: 3-7 business days',
+              refund.destination == null
+                  ? 'Choose Refund Destination'
+                  : 'Awaiting Processing',
+              refund.destination == null
+                  ? 'Select Shuvmarg Money or the original payment method'
+                  : 'Expected after provider settlement',
               false,
               isLast: true,
             ),
+          if (refund.status == 'pending' &&
+              refund.destination == null &&
+              refund.refundAmount > 0) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _isLoading
+                    ? null
+                    : () => _chooseOperatorRefundDestination(refund),
+                child: const Text('Choose Refund Destination'),
+              ),
+            ),
+          ],
           if (refund.status == 'processing' && refund.completedAt == null)
             _buildTimelineItem(
               'Refund in Progress',
@@ -434,7 +465,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: AppTheme.error.withOpacity(0.7), size: 16),
+                  Icon(Icons.info_outline,
+                      color: AppTheme.error.withOpacity(0.7), size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -455,11 +487,14 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     );
   }
 
-  Widget _buildRefundRow(String label, String value, Color valueColor, {bool bold = false}) {
+  Widget _buildRefundRow(String label, String value, Color valueColor,
+      {bool bold = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+        Text(label,
+            style:
+                const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
         Text(
           value,
           style: TextStyle(
@@ -472,7 +507,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     );
   }
 
-  Widget _buildTimelineItem(String title, String subtitle, bool completed, {bool isFirst = false, bool isLast = false}) {
+  Widget _buildTimelineItem(String title, String subtitle, bool completed,
+      {bool isFirst = false, bool isLast = false}) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Row(
@@ -482,7 +518,12 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           Column(
             children: [
               if (!isFirst)
-                Container(width: 1.5, height: 8, color: completed ? AppTheme.accentLime.withOpacity(0.3) : AppTheme.stroke),
+                Container(
+                    width: 1.5,
+                    height: 8,
+                    color: completed
+                        ? AppTheme.accentLime.withOpacity(0.3)
+                        : AppTheme.stroke),
               Container(
                 width: 10,
                 height: 10,
@@ -490,13 +531,20 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   shape: BoxShape.circle,
                   color: completed ? AppTheme.accentLime : AppTheme.stroke,
                   border: Border.all(
-                    color: completed ? AppTheme.accentLime : AppTheme.textSecondary.withOpacity(0.3),
+                    color: completed
+                        ? AppTheme.accentLime
+                        : AppTheme.textSecondary.withOpacity(0.3),
                     width: 2,
                   ),
                 ),
               ),
               if (!isLast)
-                Container(width: 1.5, height: 20, color: completed ? AppTheme.accentLime.withOpacity(0.3) : AppTheme.stroke),
+                Container(
+                    width: 1.5,
+                    height: 20,
+                    color: completed
+                        ? AppTheme.accentLime.withOpacity(0.3)
+                        : AppTheme.stroke),
             ],
           ),
           const SizedBox(width: 12),
@@ -509,7 +557,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: completed ? AppTheme.textPrimary : AppTheme.textSecondary,
+                      color: completed
+                          ? AppTheme.textPrimary
+                          : AppTheme.textSecondary,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -532,38 +582,66 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   Color _getRefundStatusColor(String status) {
     switch (status) {
-      case 'completed': return AppTheme.accentLime;
-      case 'processing': return const Color(0xFFF59E0B);
-      case 'pending': return const Color(0xFF3B82F6);
-      case 'rejected': return AppTheme.error;
-      default: return AppTheme.textSecondary;
+      case 'completed':
+        return AppTheme.accentLime;
+      case 'processing':
+        return const Color(0xFFF59E0B);
+      case 'pending':
+        return const Color(0xFF3B82F6);
+      case 'rejected':
+        return AppTheme.error;
+      default:
+        return AppTheme.textSecondary;
     }
   }
 
   String _getRefundStatusLabel(String status) {
     switch (status) {
-      case 'completed': return 'Refund Completed';
-      case 'processing': return 'Refund Processing';
-      case 'pending': return 'Refund Pending';
-      case 'rejected': return 'Refund Rejected';
-      default: return 'Unknown';
+      case 'completed':
+        return 'Refund Completed';
+      case 'processing':
+        return 'Refund Processing';
+      case 'pending':
+        return 'Refund Pending';
+      case 'rejected':
+        return 'Refund Rejected';
+      default:
+        return 'Unknown';
     }
   }
 
   IconData _getRefundStatusIcon(String status) {
     switch (status) {
-      case 'completed': return Icons.check_circle_outline;
-      case 'processing': return Icons.autorenew;
-      case 'pending': return Icons.schedule;
-      case 'rejected': return Icons.cancel_outlined;
-      default: return Icons.help_outline;
+      case 'completed':
+        return Icons.check_circle_outline;
+      case 'processing':
+        return Icons.autorenew;
+      case 'pending':
+        return Icons.schedule;
+      case 'rejected':
+        return Icons.cancel_outlined;
+      default:
+        return Icons.help_outline;
     }
   }
 
   String _formatRefundDate(String isoDate) {
     try {
       final dt = DateTime.parse(isoDate);
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
       return '${dt.day} ${months[dt.month - 1]} ${dt.year}, ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return isoDate;
@@ -601,10 +679,12 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                  const Icon(Icons.check_circle_outline,
+                      color: Colors.white, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text('Saved to ${Platform.isAndroid ? 'Downloads' : 'Documents'}'),
+                    child: Text(
+                        'Saved to ${Platform.isAndroid ? 'Downloads' : 'Documents'}'),
                   ),
                 ],
               ),
@@ -638,7 +718,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'My Sumarg bus ticket: ${widget.tripData.from} → ${widget.tripData.to}',
+        text:
+            'My Sumarg bus ticket: ${widget.tripData.from} → ${widget.tripData.to}',
         subject: 'Sumarg Bus Ticket',
       );
     } catch (e) {
@@ -697,7 +778,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                       pw.SizedBox(height: 8),
                       pw.Text(
                         'Booking ID: ${widget.tripData.ticketId}',
-                        style: const pw.TextStyle(fontSize: 14, color: PdfColors.white),
+                        style: const pw.TextStyle(
+                            fontSize: 14, color: PdfColors.white),
                       ),
                     ],
                   ),
@@ -727,7 +809,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   _buildPdfRow('Bus', widget.tripData.operatorName),
                   _buildPdfRow('Bus No.', widget.tripData.busNumber),
                   _buildPdfRow('Seats', widget.tripData.seats.join(', ')),
-                  _buildPdfRow('Price', 'Rs. ${widget.tripData.price.toStringAsFixed(0)}'),
+                  _buildPdfRow('Price',
+                      'Rs. ${widget.tripData.price.toStringAsFixed(0)}'),
                   _buildPdfRow('Status', widget.tripData.status.toUpperCase()),
                 ]),
 
@@ -737,7 +820,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 pw.Center(
                   child: pw.Column(
                     children: [
-                      pw.Text('Scan to Verify', style: const pw.TextStyle(fontSize: 14, color: PdfColors.grey)),
+                      pw.Text('Scan to Verify',
+                          style: const pw.TextStyle(
+                              fontSize: 14, color: PdfColors.grey)),
                       pw.SizedBox(height: 10),
                       pw.Image(qrPdfImage, width: 150, height: 150),
                     ],
@@ -749,7 +834,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 pw.Center(
                   child: pw.Text(
                     'Generated on ${DateTime.now().toString().split('.')[0]}',
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+                    style:
+                        const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
                   ),
                 ),
               ],
@@ -772,7 +858,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(title, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          pw.Text(title,
+              style:
+                  pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 12),
           ...children,
         ],
@@ -785,7 +873,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       padding: const pw.EdgeInsets.only(bottom: 6),
       child: pw.Row(
         children: [
-          pw.Text('$label: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+          pw.Text('$label: ',
+              style:
+                  pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
           pw.Text(value, style: const pw.TextStyle(fontSize: 12)),
         ],
       ),
@@ -845,7 +935,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       builder: (BuildContext ctx) {
         return Dialog(
           backgroundColor: AppTheme.primaryDarker,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           child: Container(
             decoration: BoxDecoration(
               color: AppTheme.primaryDarker,
@@ -871,17 +962,22 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppTheme.error.withOpacity(0.25)),
                   ),
-                  child: const Icon(Icons.receipt_long_outlined, color: AppTheme.error, size: 28),
+                  child: const Icon(Icons.receipt_long_outlined,
+                      color: AppTheme.error, size: 28),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'Cancellation Breakdown',
-                  style: TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 20),
 
                 // Breakdown rows
-                _buildEstimateRow('Ticket Fare', 'NPR ${estimate.ticketFare}', false),
+                _buildEstimateRow(
+                    'Ticket Fare', 'NPR ${estimate.ticketFare}', false),
                 if (estimate.cancellationCharge > 0)
                   _buildEstimateRow(
                     'Cancellation Fee (${(100 - estimate.refundPercentage).toInt()}%)',
@@ -889,8 +985,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                     true,
                   ),
                 if (estimate.gatewayDeduction > 0)
-                  _buildEstimateRow('Gateway Fee', '- NPR ${estimate.gatewayDeduction}', true),
-                
+                  _buildEstimateRow('Gateway Fee',
+                      '- NPR ${estimate.gatewayDeduction}', true),
+
                 Container(
                   margin: const EdgeInsets.symmetric(vertical: 12),
                   height: 1,
@@ -899,22 +996,30 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
                 // Refund amount highlight
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppTheme.accentLime.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.accentLime.withOpacity(0.2)),
+                    border:
+                        Border.all(color: AppTheme.accentLime.withOpacity(0.2)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'Refund Amount',
-                        style: TextStyle(color: AppTheme.accentLime, fontSize: 15, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            color: AppTheme.accentLime,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700),
                       ),
                       Text(
                         'NPR ${estimate.refundAmount}',
-                        style: const TextStyle(color: AppTheme.accentLime, fontSize: 18, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                            color: AppTheme.accentLime,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -924,7 +1029,10 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 // Policy info
                 Text(
                   estimate.appliedPolicy?.description ?? '',
-                  style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.7), fontSize: 11, height: 1.4),
+                  style: TextStyle(
+                      color: AppTheme.textSecondary.withOpacity(0.7),
+                      fontSize: 11,
+                      height: 1.4),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -941,11 +1049,18 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                             color: AppTheme.accentLime,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
-                              BoxShadow(color: AppTheme.accentLime.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4)),
+                              BoxShadow(
+                                  color: AppTheme.accentLime.withOpacity(0.25),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4)),
                             ],
                           ),
                           child: const Center(
-                            child: Text('Keep Ticket', style: TextStyle(color: AppTheme.primaryDark, fontSize: 14, fontWeight: FontWeight.w700)),
+                            child: Text('Keep Ticket',
+                                style: TextStyle(
+                                    color: AppTheme.primaryDark,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700)),
                           ),
                         ),
                       ),
@@ -962,10 +1077,16 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                           decoration: BoxDecoration(
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.error.withOpacity(0.4), width: 1.2),
+                            border: Border.all(
+                                color: AppTheme.error.withOpacity(0.4),
+                                width: 1.2),
                           ),
                           child: const Center(
-                            child: Text('Cancel', style: TextStyle(color: AppTheme.error, fontSize: 14, fontWeight: FontWeight.w600)),
+                            child: Text('Cancel',
+                                style: TextStyle(
+                                    color: AppTheme.error,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600)),
                           ),
                         ),
                       ),
@@ -986,7 +1107,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          Text(label,
+              style:
+                  const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
           Text(
             value,
             style: TextStyle(
@@ -1002,6 +1125,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   void _showCancelReasonSheet(CancelEstimateData estimate) {
     final TextEditingController reasonController = TextEditingController();
+    String selectedRefundMethod = 'wallet';
 
     showModalBottomSheet(
       context: context,
@@ -1029,8 +1153,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           ),
           child: StatefulBuilder(
             builder: (context, setModalState) {
-              String selectedRefundMethod = 'wallet';
-
               Future<void> submit() async {
                 final reason = reasonController.text.trim();
                 if (reason.isEmpty) {
@@ -1044,7 +1166,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 }
 
                 setModalState(() => isSubmitting = true);
-                final success = await _cancelTicketRequest(reason, selectedRefundMethod);
+                final success =
+                    await _cancelTicketRequest(reason, selectedRefundMethod);
                 if (!mounted) return;
                 setModalState(() => isSubmitting = false);
 
@@ -1052,7 +1175,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   Navigator.of(context).pop();
                   final message = selectedRefundMethod == 'wallet'
                       ? 'Refund of NPR ${estimate.refundAmount} has been instantly credited to your Shuvmarg Money.'
-                      : 'Ticket cancelled. Refund of NPR ${estimate.refundAmount} is being processed (3-5 days).';
+                      : 'Ticket cancelled. Refund of NPR ${estimate.refundAmount} is awaiting settlement to the original payment source.';
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(message),
@@ -1095,7 +1218,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   const SizedBox(height: 12),
                   // Wallet Option
                   GestureDetector(
-                    onTap: () => setModalState(() => selectedRefundMethod = 'wallet'),
+                    onTap: () =>
+                        setModalState(() => selectedRefundMethod = 'wallet'),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -1114,7 +1238,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                         children: [
                           Icon(
                             Icons.account_balance_wallet_rounded,
-                            color: selectedRefundMethod == 'wallet' ? AppTheme.accentLime : AppTheme.textSecondary,
+                            color: selectedRefundMethod == 'wallet'
+                                ? AppTheme.accentLime
+                                : AppTheme.textSecondary,
                             size: 24,
                           ),
                           const SizedBox(width: 12),
@@ -1135,13 +1261,20 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                                           TextSpan(
                                             text: 'Shuvmarg ',
                                             style: TextStyle(
-                                              color: selectedRefundMethod == 'wallet' ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                              color: selectedRefundMethod ==
+                                                      'wallet'
+                                                  ? AppTheme.textPrimary
+                                                  : AppTheme.textSecondary,
                                             ),
                                           ),
                                           TextSpan(
                                             text: 'Money',
                                             style: TextStyle(
-                                              color: selectedRefundMethod == 'wallet' ? AppTheme.accentLime : AppTheme.textSecondary.withOpacity(0.8),
+                                              color: selectedRefundMethod ==
+                                                      'wallet'
+                                                  ? AppTheme.accentLime
+                                                  : AppTheme.textSecondary
+                                                      .withOpacity(0.8),
                                             ),
                                           ),
                                         ],
@@ -1149,14 +1282,18 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
                                         color: AppTheme.accentLime,
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: const Text(
                                         'Instant',
-                                        style: TextStyle(color: AppTheme.primaryDark, fontSize: 10, fontWeight: FontWeight.w700),
+                                        style: TextStyle(
+                                            color: AppTheme.primaryDark,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700),
                                       ),
                                     ),
                                   ],
@@ -1164,13 +1301,17 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   'Refunded immediately to your wallet',
-                                  style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.7), fontSize: 12),
+                                  style: TextStyle(
+                                      color: AppTheme.textSecondary
+                                          .withOpacity(0.7),
+                                      fontSize: 12),
                                 ),
                               ],
                             ),
                           ),
                           if (selectedRefundMethod == 'wallet')
-                            const Icon(Icons.check_circle_rounded, color: AppTheme.accentLime, size: 20),
+                            const Icon(Icons.check_circle_rounded,
+                                color: AppTheme.accentLime, size: 20),
                         ],
                       ),
                     ),
@@ -1178,7 +1319,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   const SizedBox(height: 12),
                   // Original Option
                   GestureDetector(
-                    onTap: () => setModalState(() => selectedRefundMethod = 'original'),
+                    onTap: () =>
+                        setModalState(() => selectedRefundMethod = 'original'),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -1197,7 +1339,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                         children: [
                           Icon(
                             Icons.credit_card_rounded,
-                            color: selectedRefundMethod == 'original' ? AppTheme.primary : AppTheme.textSecondary,
+                            color: selectedRefundMethod == 'original'
+                                ? AppTheme.primary
+                                : AppTheme.textSecondary,
                             size: 24,
                           ),
                           const SizedBox(width: 12),
@@ -1208,21 +1352,27 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                                 Text(
                                   'Original Payment Method',
                                   style: TextStyle(
-                                    color: selectedRefundMethod == 'original' ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                    color: selectedRefundMethod == 'original'
+                                        ? AppTheme.textPrimary
+                                        : AppTheme.textSecondary,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Takes 3-5 business days',
-                                  style: TextStyle(color: AppTheme.textSecondary.withOpacity(0.7), fontSize: 12),
+                                  'Processed after provider settlement',
+                                  style: TextStyle(
+                                      color: AppTheme.textSecondary
+                                          .withOpacity(0.7),
+                                      fontSize: 12),
                                 ),
                               ],
                             ),
                           ),
                           if (selectedRefundMethod == 'original')
-                            const Icon(Icons.check_circle_rounded, color: AppTheme.primary, size: 20),
+                            const Icon(Icons.check_circle_rounded,
+                                color: AppTheme.primary, size: 20),
                         ],
                       ),
                     ),
@@ -1249,13 +1399,16 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   TextField(
                     controller: reasonController,
                     maxLines: 3,
-                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                    style: const TextStyle(
+                        color: AppTheme.textPrimary, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'e.g., Change in travel plans',
-                      hintStyle: TextStyle(color: AppTheme.textSecondary.withOpacity(0.4)),
+                      hintStyle: TextStyle(
+                          color: AppTheme.textSecondary.withOpacity(0.4)),
                       filled: true,
                       fillColor: AppTheme.inputBg,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(18),
                         borderSide: const BorderSide(color: AppTheme.stroke),
@@ -1266,7 +1419,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(18),
-                        borderSide: const BorderSide(color: AppTheme.accentLime, width: 1.5),
+                        borderSide: const BorderSide(
+                            color: AppTheme.accentLime, width: 1.5),
                       ),
                     ),
                   ),
@@ -1278,8 +1432,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
-                          color: isSubmitting 
-                              ? AppTheme.error.withOpacity(0.5) 
+                          color: isSubmitting
+                              ? AppTheme.error.withOpacity(0.5)
                               : AppTheme.error,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
@@ -1298,7 +1452,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
                               : const Text(
@@ -1324,7 +1479,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   Future<bool> _cancelTicketRequest(String reason, String refundMethod) async {
     try {
-      final ticketProvider = Provider.of<TicketProvider>(context, listen: false);
+      final ticketProvider =
+          Provider.of<TicketProvider>(context, listen: false);
       final data = {
         'ticketId': widget.tripData.ticketId,
         'cancelReason': reason,
@@ -1357,5 +1513,27 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       }
       return false;
     }
+  }
+
+  Future<void> _chooseOperatorRefundDestination(RefundInfo refund) async {
+    final chosen = await RefundDestinationDialog.show(
+      context,
+      refundAmount: refund.refundAmount,
+      onSubmit: (destination) async {
+        final provider = Provider.of<TicketProvider>(context, listen: false);
+        final response = await provider.selectRefundDestination({
+          'ticketId': widget.tripData.ticketId,
+          'refundMethod': destination,
+        });
+        if (!mounted) return false;
+        if (!response.status) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(response.message),
+              backgroundColor: AppTheme.error));
+        }
+        return response.status;
+      },
+    );
+    if (chosen == true && mounted) Navigator.pop(context, true);
   }
 }
