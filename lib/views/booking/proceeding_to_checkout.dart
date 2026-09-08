@@ -24,7 +24,7 @@ import 'package:sumarg/views/booking/checkout/boarding_point_section.dart';
 import 'package:sumarg/views/booking/checkout/coupon_section.dart';
 import 'package:sumarg/views/booking/checkout/sm_money_section.dart';
 import 'package:sumarg/views/booking/checkout/price_breakdown_section.dart';
-import 'package:sumarg/views/wallet/wallet_pin_sheet.dart';
+import 'checkout/payment_approval_dialog.dart';
 
 class ProceedingToCheckout extends StatefulWidget {
   final int totalPrice;
@@ -462,21 +462,20 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
       });
       if (!mounted) return;
       if (!prepared.status || prepared.tempBookingId == null) throw StateError(prepared.message);
-      String? pin;
-      if (_isSmMoneyEnabled && _smMoneyApplied > 0) {
-        final entered = await WalletPinSheet.show(context, mode: WalletPinMode.verify);
-        if (!mounted || entered is! String || entered.isEmpty) return;
-        pin = entered;
-      }
-      final checkout = await _esewaCheckout.initiate({
+      final purchase = <String, dynamic>{
         'tempBookingId': prepared.tempBookingId,
         'passengerDetails': _buildPassengerDetails(),
         'boardingPoint': _buildBoardingPointMap(),
         'droppingPoint': _buildDroppingPointMap(),
         if (_isCouponApplied) 'couponCode': _couponController.text.trim(),
         'smMoneyToUse': _isSmMoneyEnabled ? _smMoneyApplied : 0,
-        if (pin != null) 'walletPin': pin,
-      });
+      };
+      if (_isSmMoneyEnabled && _smMoneyApplied > 0) {
+        final approval = await PaymentApprovalDialog.request(context, {...purchase, 'gateway': 'esewa'});
+        if (!mounted || approval == null) return;
+        purchase['paymentAuthorizationId'] = approval;
+      }
+      final checkout = await _esewaCheckout.initiate(purchase);
       if (!mounted) return;
       setState(() => _pendingPayment = checkout.reference);
       final responseData = await Navigator.push<String>(context,
@@ -572,19 +571,6 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
       _smMoneyMaxAllowed = prepareResp.maxSmMoneyAllowed;
       _gatewayPayable    = prepareResp.gatewayAmount;
 
-      // Phase 1.5: Collect Wallet PIN for server-side verification
-      final walletPin = await WalletPinSheet.show(context, mode: WalletPinMode.verify);
-      
-      if (!mounted) return;
-      if (walletPin == null || walletPin is! String || walletPin.isEmpty) {
-        ToastService.showToast(
-          msg: "Payment cancelled.",
-          context: context,
-          type: ToastType.info,
-        );
-        return;
-      }
-
       setState(() { _isBooking = true; });
 
       // Phase 2: Call confirmBooking instantly with wallet gateway
@@ -602,7 +588,6 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         'originalAmount':   widget.totalPrice,
         'seatNumbers':      seats,
         'gateway':          'wallet',
-        'walletPin':        walletPin, // Server-side PIN verification
         'bookedFrom':       widget.busData.routeDetail.from,
         'bookedTo':         widget.busData.routeDetail.to,
         'bookedDepartureTime': widget.busData.departureTime,
@@ -614,6 +599,9 @@ class _TicketSummaryWidgetState extends State<TicketSummaryWidget> {
         if (_isSmMoneyEnabled && _smMoneyApplied > 0) 'smMoneyToUse': _smMoneyApplied,
       };
 
+      final approval = await PaymentApprovalDialog.request(context, confirmData);
+      if (!mounted || approval == null) return;
+      confirmData['paymentAuthorizationId'] = approval;
       final response = await ticketProvider.confirmBooking(confirmData);
       if (!mounted) return;
 

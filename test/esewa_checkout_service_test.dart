@@ -36,7 +36,7 @@ void main() {
     expect(api.calls, 0);
   });
   test('restart keeps only the reference and blocks a second initiation', () async {
-    await service.initiate({'walletPin': '1234'});
+    await service.initiate({'paymentAuthorizationId': 'purchase-123'});
     final restored = EsewaCheckoutService(api: api);
     expect(await restored.pendingReference(), 'payment_123');
     await expectLater(restored.initiate({}), throwsStateError);
